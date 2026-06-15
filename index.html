@@ -256,90 +256,126 @@ function insertBase64(file){
 
 // ── Markdown 渲染 ──────────────────────────────────────
 function mdToHtml(md){
-  // 先提取数学公式，避免被转义破坏
-  let mathBlocks = [];
-  let mathInlines = [];
-  // 保护块级公式 $$...$$
-  md = md.replace(/\$\$([\s\S]+?)\$\$/g, function(m, formula) {
-    mathBlocks.push(formula);
+  // Step 1: 保护代码块（避免内容被其他规则破坏）
+  let codeBlocks = [];
+  md = md.replace(/```([\s\S]*?)```/g, function(m, c) {
+    codeBlocks.push(c.trim());
+    return 'CODEBLOCK' + (codeBlocks.length-1) + 'END';
+  });
+
+  // Step 2: 保护行内代码
+  let inlineCodes = [];
+  md = md.replace(/`([^`]+)`/g, function(m, c) {
+    inlineCodes.push(c);
+    return 'INLINECODE' + (inlineCodes.length-1) + 'END';
+  });
+
+  // Step 3: 保护数学公式
+  let mathBlocks = [], mathInlines = [];
+  md = md.replace(/\$\$([\s\S]+?)\$\$/g, function(m, f) {
+    mathBlocks.push(f);
     return 'MATHBLOCK' + (mathBlocks.length-1) + 'END';
   });
-  // 保护行内公式 $...$
-  md = md.replace(/\$([^\$\n]+?)\$/g, function(m, formula) {
-    mathInlines.push(formula);
+  md = md.replace(/\$([^\$\n]+?)\$/g, function(m, f) {
+    mathInlines.push(f);
     return 'MATHINLINE' + (mathInlines.length-1) + 'END';
   });
-  // 处理表格（在转义之前处理，保持原始字符）
+
+  // Step 4: 保护表格
   let tableBlocks = [];
-  md = md.replace(/^(\|.+\|\s*\n)(\|[-:| ]+\|\s*\n)((?:\|.+\|\s*\n?)*)/gm, function(match) {
-    tableBlocks.push(match);
+  md = md.replace(/((?:^\|.+\|\s*\n)+)/gm, function(match) {
+    // 解析表格
+    var lines = match.trim().split('\n').filter(l => l.trim());
+    var result = '<table>';
+    var headerDone = false;
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim();
+      if (!line) continue;
+      // 分隔行（|----|）
+      if (/^\|[\s\-:]+\|$/.test(line.replace(/[^|\-: ]/g,''))) {
+        headerDone = true;
+        continue;
+      }
+      var cells = line.split('|').slice(1,-1).map(c => c.trim());
+      if (!headerDone) {
+        result += '<thead><tr>' + cells.map(c=>'<th>'+c+'</th>').join('') + '</tr></thead><tbody>';
+      } else {
+        result += '<tr>' + cells.map(c=>'<td>'+c+'</td>').join('') + '</tr>';
+      }
+    }
+    if (headerDone) result += '</tbody>';
+    result += '</table>';
+    tableBlocks.push(result);
     return 'TABLEBLOCK' + (tableBlocks.length-1) + 'END\n';
   });
 
+  // Step 5: 转义HTML特殊字符
   let h = md
-    // 转义
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    // 先保护代码块
-    .replace(/```([\s\S]*?)```/g, (m,c) => '<pre><code>' + c.trim() + '</code></pre>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    // 图片（必须在链接之前）
-    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">')
-    // 链接
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;');
+
+  // Step 6: 图片和链接
+  h = h.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:8px;margin:8px 0;display:block">');
+  h = h.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color:#4338ca">$1</a>');
+
+  // Step 7: 处理每一行
+  var lines = h.split('\n');
+  var out = [];
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
     // 标题
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    // 粗体斜体
-    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    if (/^### /.test(line)) { out.push('<h3>' + line.slice(4) + '</h3>'); continue; }
+    if (/^## /.test(line)) { out.push('<h2>' + line.slice(3) + '</h2>'); continue; }
+    if (/^# /.test(line)) { out.push('<h1>' + line.slice(2) + '</h1>'); continue; }
     // 分割线
-    .replace(/^---+$/gm, '<hr>')
+    if (/^---+$/.test(line.trim())) { out.push('<hr>'); continue; }
     // 引用
-    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+    if (/^&gt; /.test(line)) { out.push('<blockquote>' + line.slice(5) + '</blockquote>'); continue; }
     // 有序列表
-    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+    if (/^\d+\. /.test(line)) { out.push('<li>' + line.replace(/^\d+\. /,'') + '</li>'); continue; }
     // 无序列表
-    .replace(/^[-*] (.+)$/gm, '<li>$1</li>')
-    // 换行
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/\n/g, '<br>');
+    if (/^[-*] /.test(line)) { out.push('<li>' + line.slice(2) + '</li>'); continue; }
+    // 空行
+    if (line.trim() === '') { out.push('<br>'); continue; }
+    // 普通段落
+    out.push('<p>' + line + '</p>');
+  }
 
-  // 包裹列表
-  h = h.replace(/(<li>.*?<\/li>)(\s*<li>)/gs, '$1$2');
-  h = h.replace(/((?:<li>.*?<\/li>\s*)+)/g, '<ul>$1</ul>');
+  h = out.join('\n');
 
-  h = '<p>' + h + '</p>';
-  // 恢复表格
-  h = h.replace(/TABLEBLOCK(\d+)END/g, function(m, i) {
-    var lines = tableBlocks[parseInt(i)].trim().split('\n').filter(l => l.trim());
-    var result = '<table>';
-    var isHeader = true;
-    for (var li = 0; li < lines.length; li++) {
-      var line = lines[li].trim();
-      if (!line || /^\|[-:| ]+\|$/.test(line)) { isHeader = false; continue; }
-      var cells = line.split('|').slice(1,-1);
-      if (isHeader) {
-        result += '<thead><tr>' + cells.map(c => '<th>' + c.trim() + '</th>').join('') + '</tr></thead>';
-        isHeader = false;
-      } else {
-        result += '<tr>' + cells.map(c => '<td>' + c.trim() + '</td>').join('') + '</tr>';
-      }
-    }
-    result += '</table>';
-    return result;
+  // Step 8: 粗体斜体（在段落内处理）
+  h = h.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+  h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');
+
+  // Step 9: 包裹连续li为ul
+  h = h.replace(/((?:<li>[\s\S]*?<\/li>\n?)+)/g, '<ul>$1</ul>');
+
+  // Step 10: 恢复所有占位符
+  // 代码块
+  h = h.replace(/CODEBLOCK(\d+)END/g, function(m, i) {
+    return '<pre><code>' + codeBlocks[i].replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>') + '</code></pre>';
   });
-  // 恢复块级公式
+  // 行内代码
+  h = h.replace(/INLINECODE(\d+)END/g, function(m, i) {
+    return '<code>' + inlineCodes[i] + '</code>';
+  });
+  // 表格
+  h = h.replace(/TABLEBLOCK(\d+)END/g, function(m, i) {
+    return tableBlocks[i];
+  });
+  // 块级数学公式
   h = h.replace(/MATHBLOCK(\d+)END/g, function(m, i) {
     try { return '<div class="math-block">' + katex.renderToString(mathBlocks[i], {displayMode:true, throwOnError:false}) + '</div>'; }
     catch(e) { return '<div class="math-block">$$' + mathBlocks[i] + '$$</div>'; }
   });
-  // 恢复行内公式
+  // 行内数学公式
   h = h.replace(/MATHINLINE(\d+)END/g, function(m, i) {
     try { return katex.renderToString(mathInlines[i], {displayMode:false, throwOnError:false}); }
     catch(e) { return '$' + mathInlines[i] + '$'; }
   });
+
   return h;
 }
 
