@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>我的知识库</title>
+<title>我的知识库 - 可管理分类</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
@@ -19,11 +19,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 .search-box input::placeholder{color:#aaa}
 .section-label{padding:10px 14px 4px;font-size:11px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:0.06em}
 .cat-list{padding:0 8px;flex:1;overflow-y:auto}
-.cat-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;cursor:pointer;font-size:13px;color:#555;margin-bottom:2px}
+.cat-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;cursor:pointer;font-size:13px;color:#555;margin-bottom:2px;justify-content:space-between}
+.cat-item-left{display:flex;align-items:center;gap:8px;flex:1;overflow:hidden}
+.cat-item-left span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cat-item:hover{background:#f5f5f0}
 .cat-item.active{background:#f0eefc;color:#4338ca}
-.cat-count{margin-left:auto;font-size:11px;color:#bbb;background:#f0f0ec;padding:1px 7px;border-radius:99px}
+.cat-count{margin-left:auto;font-size:11px;color:#bbb;background:#f0f0ec;padding:1px 7px;border-radius:99px;flex-shrink:0}
 .cat-item.active .cat-count{background:#e0defa;color:#6366f1}
+.cat-delete-btn{background:transparent;border:none;cursor:pointer;font-size:14px;padding:2px 5px;border-radius:20px;color:#aaa;opacity:0;transition:all 0.1s;font-weight:bold;line-height:1}
+.cat-item:hover .cat-delete-btn{opacity:0.6}
+.cat-delete-btn:hover{opacity:1 !important;color:#ef4444;background:#fee2e2}
 .new-btn{margin:10px;padding:8px 12px;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit;justify-content:center}
 .new-btn:hover{background:#4338ca}
 .note-list{width:230px;min-width:230px;background:#fafaf8;border-right:1px solid #e8e8e4;display:flex;flex-direction:column}
@@ -189,7 +194,6 @@ async function uploadImage(input){
   const prog = document.getElementById('uploadProgress');
   prog.textContent = '上传中...';
 
-  // 先尝试上传到 Supabase Storage
   const fileName = Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
   const bucket = 'note-images';
 
@@ -211,13 +215,11 @@ async function uploadImage(input){
       prog.textContent = '✓ 上传成功';
       setTimeout(()=>prog.textContent='', 2000);
     } else {
-      // Storage bucket不存在，改用Base64嵌入
       await insertBase64(file);
       prog.textContent = '✓ 已嵌入（Base64）';
       setTimeout(()=>prog.textContent='', 2000);
     }
   } catch(e) {
-    // 网络失败也用Base64
     await insertBase64(file);
     prog.textContent = '✓ 已嵌入';
     setTimeout(()=>prog.textContent='', 2000);
@@ -256,21 +258,18 @@ function insertBase64(file){
 
 // ── Markdown 渲染 ──────────────────────────────────────
 function mdToHtml(md){
-  // Step 1: 保护代码块（避免内容被其他规则破坏）
   let codeBlocks = [];
   md = md.replace(/```([\s\S]*?)```/g, function(m, c) {
     codeBlocks.push(c.trim());
     return 'CODEBLOCK' + (codeBlocks.length-1) + 'END';
   });
 
-  // Step 2: 保护行内代码
   let inlineCodes = [];
   md = md.replace(/`([^`]+)`/g, function(m, c) {
     inlineCodes.push(c);
     return 'INLINECODE' + (inlineCodes.length-1) + 'END';
   });
 
-  // Step 3: 保护数学公式
   let mathBlocks = [], mathInlines = [];
   md = md.replace(/\$\$([\s\S]+?)\$\$/g, function(m, f) {
     mathBlocks.push(f);
@@ -281,17 +280,14 @@ function mdToHtml(md){
     return 'MATHINLINE' + (mathInlines.length-1) + 'END';
   });
 
-  // Step 4: 保护表格
   let tableBlocks = [];
   md = md.replace(/((?:^\|.+\|\s*\n)+)/gm, function(match) {
-    // 解析表格
     var lines = match.trim().split('\n').filter(l => l.trim());
     var result = '<table>';
     var headerDone = false;
     for (var i = 0; i < lines.length; i++) {
       var line = lines[i].trim();
       if (!line) continue;
-      // 分隔行（|----|）
       if (/^\|[\s\-:]+\|$/.test(line.replace(/[^|\-: ]/g,''))) {
         headerDone = true;
         continue;
@@ -309,74 +305,53 @@ function mdToHtml(md){
     return 'TABLEBLOCK' + (tableBlocks.length-1) + 'END\n';
   });
 
-  // Step 5: 转义HTML特殊字符
   let h = md
     .replace(/&/g,'&amp;')
     .replace(/</g,'&lt;')
     .replace(/>/g,'&gt;');
 
-  // Step 6: 图片和链接
   h = h.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:8px;margin:8px 0;display:block">');
   h = h.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color:#4338ca">$1</a>');
 
-  // Step 7: 处理每一行
   var lines = h.split('\n');
   var out = [];
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i];
-    // 标题（支持1~4级）
     if (/^#### /.test(line)) { out.push('<h4 style="font-size:13px;font-weight:600;margin:12px 0 4px;color:#555">' + line.slice(5) + '</h4>'); continue; }
     if (/^### /.test(line)) { out.push('<h3>' + line.slice(4) + '</h3>'); continue; }
     if (/^## /.test(line)) { out.push('<h2>' + line.slice(3) + '</h2>'); continue; }
     if (/^# /.test(line)) { out.push('<h1>' + line.slice(2) + '</h1>'); continue; }
-    // 分割线
     if (/^---+$/.test(line.trim())) { out.push('<hr>'); continue; }
-    // 引用
     if (/^&gt; /.test(line)) { out.push('<blockquote>' + line.slice(5) + '</blockquote>'); continue; }
-    // 有序列表
     if (/^\d+\. /.test(line)) { out.push('<li>' + line.replace(/^\d+\. /,'') + '</li>'); continue; }
-    // 无序列表
     if (/^[-*] /.test(line)) { out.push('<li>' + line.slice(2) + '</li>'); continue; }
-    // 空行
     if (line.trim() === '') { out.push('<br>'); continue; }
-    // 普通段落
     out.push('<p>' + line + '</p>');
   }
 
   h = out.join('\n');
-
-  // Step 8: 粗体斜体（在段落内处理）
   h = h.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
   h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   h = h.replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');
-
-  // Step 9: 包裹连续li为ul
   h = h.replace(/((?:<li>[\s\S]*?<\/li>\n?)+)/g, '<ul>$1</ul>');
 
-  // Step 10: 恢复所有占位符
-  // 代码块
   h = h.replace(/CODEBLOCK(\d+)END/g, function(m, i) {
     return '<pre><code>' + codeBlocks[i].replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>') + '</code></pre>';
   });
-  // 行内代码
   h = h.replace(/INLINECODE(\d+)END/g, function(m, i) {
     return '<code>' + inlineCodes[i] + '</code>';
   });
-  // 表格
   h = h.replace(/TABLEBLOCK(\d+)END/g, function(m, i) {
     return tableBlocks[i];
   });
-  // 块级数学公式
   h = h.replace(/MATHBLOCK(\d+)END/g, function(m, i) {
     try { return '<div class="math-block">' + katex.renderToString(mathBlocks[i], {displayMode:true, throwOnError:false}) + '</div>'; }
     catch(e) { return '<div class="math-block">$$' + mathBlocks[i] + '$$</div>'; }
   });
-  // 行内数学公式
   h = h.replace(/MATHINLINE(\d+)END/g, function(m, i) {
     try { return katex.renderToString(mathInlines[i], {displayMode:false, throwOnError:false}); }
     catch(e) { return '$' + mathInlines[i] + '$'; }
   });
-
   return h;
 }
 
@@ -461,11 +436,73 @@ function renderAll(){renderCats();renderList()}
 
 function renderCats(){
   document.getElementById('catList').innerHTML=cats().map(c=>`
-    <div class="cat-item${c===currentCat?' active':''}" onclick="selectCat('${c}')">
-      ${catIcon(c)} ${c}
-      <span class="cat-count">${catCount(c)}</span>
+    <div class="cat-item${c===currentCat?' active':''}">
+      <div class="cat-item-left" onclick="selectCat('${c.replace(/'/g, "\\'")}')">
+        ${catIcon(c)} <span>${c}</span>
+        <span class="cat-count">${catCount(c)}</span>
+      </div>
+      ${c !== '全部' ? `<button class="cat-delete-btn" onclick="deleteCategory('${c.replace(/'/g, "\\'")}')" title="删除分类「${c}」及其中所有笔记">🗑</button>` : ''}
     </div>`).join('');
 }
+
+// 一键删除分类及其所有笔记（核心新增函数）
+window.deleteCategory = async function(categoryName) {
+  if(categoryName === '全部') {
+    toast('不能删除「全部」虚拟分类', 1500);
+    return;
+  }
+  const notesToDelete = notes.filter(n => n.category === categoryName);
+  const count = notesToDelete.length;
+  if(count === 0) {
+    toast(`分类「${categoryName}」下没有笔记，可直接忽略`, 1500);
+    // 如果分类下无笔记但依然存在于列表中？理论上category是由现有笔记动态生成的，但为了完整，重新拉取即可
+    renderAll();
+    return;
+  }
+  
+  const confirmMsg = `⚠️ 确定要删除分类「${categoryName}」吗？\n该分类下的 ${count} 条笔记将被永久删除！\n此操作不可恢复。`;
+  if(!confirm(confirmMsg)) return;
+  
+  // 显示加载提示
+  toast(`正在删除分类「${categoryName}」及 ${count} 条笔记...`, 1800);
+  
+  // 逐条删除笔记（因为 Supabase 可能不支持批量删除带过滤条件的语句，但我们可以用 id 列表批量删除更高效）
+  // 方案: 收集所有待删除笔记的id，然后一次性 DELETE 使用 or 条件。但为了避免复杂，采用批量过滤category直接调用API删除更简洁
+  // 直接通过 category 过滤删除（注意SQL注入防范，但 supabase 使用参数化，直接使用 eq过滤是安全的）
+  try {
+    const deleteUrl = API + '?category=eq.' + encodeURIComponent(categoryName);
+    const res = await fetch(deleteUrl, {
+      method: 'DELETE',
+      headers: HEADERS
+    });
+    
+    if(res.ok) {
+      // 从本地 notes 数组中移除这些笔记
+      notes = notes.filter(n => n.category !== categoryName);
+      // 如果当前正在查看的笔记刚好属于被删除的分类，关闭编辑器
+      if(currentId) {
+        const currentNote = notes.find(n => n.id === currentId);
+        if(!currentNote) {
+          currentId = null;
+          document.getElementById('emptyState').style.display = '';
+          document.getElementById('editorContent').style.display = 'none';
+        }
+      }
+      // 如果当前选中的分类正是被删除的分类，切换到「全部」
+      if(currentCat === categoryName) {
+        currentCat = '全部';
+      }
+      renderAll();
+      toast(`✅ 已删除分类「${categoryName}」及 ${count} 条笔记`, 2500);
+    } else {
+      console.error(await res.text());
+      toast(`删除失败: 服务器错误`, 2000);
+    }
+  } catch(err) {
+    console.error(err);
+    toast(`删除出错: ${err.message}`, 2000);
+  }
+};
 
 function selectCat(c){currentCat=c;document.getElementById('listTitle').textContent=c;renderCats();renderList()}
 
@@ -478,13 +515,23 @@ function renderList(){
   document.getElementById('listCount').textContent=list.length+'篇';
   document.getElementById('noteItems').innerHTML=list.length?list.map(n=>`
     <div class="note-item${n.id===currentId?' active':''}" onclick="openNote('${n.id}')">
-      <div class="note-title">${n.title||'无标题'}</div>
-      <div class="note-preview">${(n.content||'').replace(/!\[.*?\]\(data:.*?\)/g,'[图片]').replace(/[#\->`*!]/g,'').slice(0,50)}</div>
+      <div class="note-title">${escapeHtml(n.title||'无标题')}</div>
+      <div class="note-preview">${escapeHtml((n.content||'').replace(/!\[.*?\]\(data:.*?\)/g,'[图片]').replace(/[#\->`*!]/g,'').slice(0,50))}</div>
       <div class="note-meta">
-        ${(n.tags||[]).slice(0,3).map(t=>`<span class="tag">${t}</span>`).join('')}
+        ${(n.tags||[]).slice(0,3).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join('')}
         <span class="note-date">${(n.updated_at||'').slice(0,10)}</span>
       </div>
     </div>`).join(''):'<div class="loading">暂无笔记</div>';
+}
+
+function escapeHtml(str){
+  if(!str) return '';
+  return str.replace(/[&<>]/g, function(m){
+    if(m === '&') return '&amp;';
+    if(m === '<') return '&lt;';
+    if(m === '>') return '&gt;';
+    return m;
+  });
 }
 
 function openNote(id){
@@ -506,7 +553,7 @@ function openNote(id){
 
 function renderEditorTags(tags){
   document.getElementById('editorTags').innerHTML=
-    tags.map(t=>`<span class="etag">${t}<span class="etag-rm" onclick="removeTag('${t}')">×</span></span>`).join('')+
+    tags.map(t=>`<span class="etag">${escapeHtml(t)}<span class="etag-rm" onclick="removeTag('${t.replace(/'/g, "\\'")}')">×</span></span>`).join('')+
     `<input class="tag-input" placeholder="+ 添加标签" id="tagInput" onkeydown="addTag(event)">`;
 }
 
