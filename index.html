@@ -16,11 +16,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 .search-box input::placeholder{color:#aaa}
 .section-label{padding:10px 14px 4px;font-size:11px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:0.06em}
 .cat-list{padding:0 8px;flex:1;overflow-y:auto}
-.cat-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;cursor:pointer;font-size:13px;color:#555;margin-bottom:2px}
+.cat-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;cursor:pointer;font-size:13px;color:#555;margin-bottom:2px;position:relative}
 .cat-item:hover{background:#f5f5f0}
 .cat-item.active{background:#f0eefc;color:#4338ca}
-.cat-count{margin-left:auto;font-size:11px;color:#bbb;background:#f0f0ec;padding:1px 7px;border-radius:99px}
+.cat-count{font-size:11px;color:#bbb;background:#f0f0ec;padding:1px 7px;border-radius:99px;margin-left:auto}
 .cat-item.active .cat-count{background:#e0defa;color:#6366f1}
+.cat-del{display:none;width:18px;height:18px;border-radius:5px;border:none;background:transparent;color:#bbb;font-size:14px;line-height:1;cursor:pointer;padding:0;flex-shrink:0;align-items:center;justify-content:center}
+.cat-del:hover{background:#fee2e2;color:#ef4444}
+.cat-item:hover .cat-del{display:flex}
+.cat-item:hover .cat-count{display:none}
 .sidebar-actions{padding:8px;border-top:1px solid #e8e8e4;display:flex;flex-direction:column;gap:6px}
 .new-btn{padding:8px 12px;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit;justify-content:center}
 .new-btn:hover{background:#4338ca}
@@ -128,14 +132,17 @@ select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;back
     <div class="sidebar-actions">
       <button class="new-btn" id="newBtn">＋ 新建笔记</button>
       <button class="import-btn" id="importBtn">📥 导入物化复习资料</button>
-      <button class="danger-btn" id="deleteAllBtn">🗑 全部删除</button>
+      <button class="danger-btn" id="deleteAllBtn">🗑 删除全部笔记</button>
     </div>
   </div>
 
   <div class="note-list">
     <div class="list-header">
       <span id="listTitle">全部笔记</span>
-      <span id="listCount" style="font-size:12px;color:#bbb"></span>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span id="listCount" style="font-size:12px;color:#bbb"></span>
+        <button id="deleteCatBtn" onclick="openDeleteCat()" title="删除当前分类所有笔记" style="padding:2px 7px;border:1px solid #fca5a5;border-radius:6px;background:transparent;color:#ef4444;font-size:11px;cursor:pointer;display:none">🗑</button>
+      </div>
     </div>
     <div class="note-items" id="noteItems"></div>
   </div>
@@ -208,6 +215,22 @@ select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;back
     <div class="modal-btns" id="deleteAllBtns">
       <button class="modal-cancel" onclick="closeModal('deleteAllModal')">取消</button>
       <button class="modal-confirm-red" onclick="confirmDeleteAll()">确认全部删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 删除当前分类弹窗 -->
+<div class="modal-overlay" id="deleteCatModal">
+  <div class="modal">
+    <h3>🗑 删除分类笔记</h3>
+    <p>将永久删除分类 <strong id="deleteCatName"></strong> 下的 <strong id="deleteCatCount"></strong> 篇笔记，无法恢复。确定继续吗？</p>
+    <div class="progress-bar-wrap" id="catDelProgressWrap" style="display:none">
+      <div class="progress-bar" id="catDelProgressBar"></div>
+    </div>
+    <p class="progress-label" id="catDelProgressLabel"></p>
+    <div class="modal-btns" id="deleteCatBtns">
+      <button class="modal-cancel" onclick="closeModal('deleteCatModal')">取消</button>
+      <button class="modal-confirm-red" onclick="confirmDeleteCat()">确认删除</button>
     </div>
   </div>
 </div>
@@ -911,6 +934,9 @@ function renderList() {
   let list = filtered();
   if (q) list = list.filter(n => (n.title || '').toLowerCase().includes(q) || (n.content || '').toLowerCase().includes(q) || ((n.tags || []).join(' ')).toLowerCase().includes(q));
   document.getElementById('listCount').textContent = list.length + '篇';
+  // 非「全部」分类且有笔记时显示分类删除按钮
+  const catBtn = document.getElementById('deleteCatBtn');
+  catBtn.style.display = (currentCat !== '全部' && list.length > 0) ? 'inline-block' : 'none';
   document.getElementById('noteItems').innerHTML = list.length ? list.map(n => `
     <div class="note-item${n.id === currentId ? ' active' : ''}" onclick="openNote('${n.id}')">
       <div class="note-title">${n.title || '无标题'}</div>
@@ -1025,6 +1051,49 @@ async function confirmDeleteAll() {
   document.getElementById('editorContent').style.display = 'none';
   closeModal('deleteAllModal');
   toast('✓ 全部删除完成');
+  renderAll();
+}
+
+// ── 删除当前分类 ─────────────────────────────────────────
+function openDeleteCat() {
+  const catNotes = notes.filter(n => n.category === currentCat);
+  document.getElementById('deleteCatName').textContent = '「' + currentCat + '」';
+  document.getElementById('deleteCatCount').textContent = catNotes.length;
+  document.getElementById('catDelProgressWrap').style.display = 'none';
+  document.getElementById('catDelProgressLabel').textContent = '';
+  document.getElementById('deleteCatBtns').style.display = 'flex';
+  openModal('deleteCatModal');
+}
+
+async function confirmDeleteCat() {
+  const toDelete = notes.filter(n => n.category === currentCat && n._saved !== false);
+  if (toDelete.length === 0) { closeModal('deleteCatModal'); toast('没有可删除的笔记'); return; }
+
+  document.getElementById('deleteCatBtns').style.display = 'none';
+  document.getElementById('catDelProgressWrap').style.display = 'block';
+
+  let done = 0;
+  for (const n of toDelete) {
+    await fetch(API + '?id=eq.' + n.id, { method: 'DELETE', headers: HEADERS });
+    done++;
+    const pct = Math.round(done / toDelete.length * 100);
+    document.getElementById('catDelProgressBar').style.width = pct + '%';
+    document.getElementById('catDelProgressLabel').textContent = `已删除 ${done} / ${toDelete.length}`;
+  }
+
+  // 若当前打开的笔记属于该分类，清空编辑器
+  const deletedIds = toDelete.map(n => n.id);
+  if (deletedIds.includes(currentId)) {
+    currentId = null;
+    document.getElementById('emptyState').style.display = '';
+    document.getElementById('editorContent').style.display = 'none';
+  }
+  const deletedCat = currentCat;
+  notes = notes.filter(n => n.category !== deletedCat || n._saved === false);
+  currentCat = '全部';
+  document.getElementById('listTitle').textContent = '全部';
+  closeModal('deleteCatModal');
+  toast('✓ 已删除「' + deletedCat + '」分类下所有笔记');
   renderAll();
 }
 
