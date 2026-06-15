@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>我的知识库</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;background:#f5f5f0;color:#1a1a1a;height:100vh;overflow:hidden}
@@ -16,22 +19,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 .search-box input::placeholder{color:#aaa}
 .section-label{padding:10px 14px 4px;font-size:11px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:0.06em}
 .cat-list{padding:0 8px;flex:1;overflow-y:auto}
-.cat-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;cursor:pointer;font-size:13px;color:#555;margin-bottom:2px;position:relative}
+.cat-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;cursor:pointer;font-size:13px;color:#555;margin-bottom:2px}
 .cat-item:hover{background:#f5f5f0}
 .cat-item.active{background:#f0eefc;color:#4338ca}
-.cat-count{font-size:11px;color:#bbb;background:#f0f0ec;padding:1px 7px;border-radius:99px;margin-left:auto}
+.cat-count{margin-left:auto;font-size:11px;color:#bbb;background:#f0f0ec;padding:1px 7px;border-radius:99px}
 .cat-item.active .cat-count{background:#e0defa;color:#6366f1}
-.cat-del{display:none;width:18px;height:18px;border-radius:5px;border:none;background:transparent;color:#bbb;font-size:14px;line-height:1;cursor:pointer;padding:0;flex-shrink:0;align-items:center;justify-content:center}
-.cat-del:hover{background:#fee2e2;color:#ef4444}
-.cat-item:hover .cat-del{display:flex}
-.cat-item:hover .cat-count{display:none}
-.sidebar-actions{padding:8px;border-top:1px solid #e8e8e4;display:flex;flex-direction:column;gap:6px}
-.new-btn{padding:8px 12px;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit;justify-content:center}
+.new-btn{margin:10px;padding:8px 12px;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit;justify-content:center}
 .new-btn:hover{background:#4338ca}
-.import-btn{padding:7px 12px;background:#f0eefc;color:#4338ca;border:1px solid #c7d2fe;border-radius:8px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit;justify-content:center}
-.import-btn:hover{background:#e0defa}
-.danger-btn{padding:7px 12px;background:#fff;color:#ef4444;border:1px solid #fca5a5;border-radius:8px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit;justify-content:center}
-.danger-btn:hover{background:#fef2f2}
 .note-list{width:230px;min-width:230px;background:#fafaf8;border-right:1px solid #e8e8e4;display:flex;flex-direction:column}
 .list-header{padding:10px 14px;font-size:13px;font-weight:500;border-bottom:1px solid #e8e8e4;display:flex;align-items:center;justify-content:space-between;color:#555}
 .note-items{flex:1;overflow-y:auto}
@@ -64,8 +58,11 @@ select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;back
 .edit-pane textarea{width:100%;height:100%;min-height:300px;border:none;outline:none;resize:none;font-size:14px;line-height:1.9;color:#1a1a1a;background:transparent;font-family:'Menlo','Monaco','Courier New',monospace}
 .preview-pane{flex:1;padding:16px 24px;overflow-y:auto;display:none;border-left:1px solid #f0f0ec;min-height:0;height:100%}
 .preview-pane.show{display:block}
+.math-block{overflow-x:auto;margin:12px 0;padding:8px;background:#f9f9ff;border-radius:6px;text-align:center}
+.katex-display{margin:0}
 .split-view .edit-pane{flex:1}
 .split-view .preview-pane{display:block;flex:1}
+/* Markdown preview styles */
 .preview-pane h1{font-size:22px;font-weight:700;margin:0 0 12px;color:#1a1a1a;border-bottom:2px solid #e8e8e4;padding-bottom:8px}
 .preview-pane h2{font-size:18px;font-weight:600;margin:20px 0 8px;color:#1a1a1a;border-bottom:1px solid #f0f0ec;padding-bottom:4px}
 .preview-pane h3{font-size:15px;font-weight:600;margin:16px 0 6px;color:#333}
@@ -95,26 +92,9 @@ select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;back
 .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#ccc;gap:10px;font-size:14px}
 .empty svg{width:40px;height:40px;opacity:0.3}
 .loading{text-align:center;padding:20px;color:#bbb;font-size:13px}
-.toast{position:fixed;bottom:20px;right:20px;background:#1a1a1a;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:999}
+.toast{position:fixed;bottom:20px;right:20px;background:#1a1a1a;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:100}
 .toast.show{opacity:1}
 .upload-progress{font-size:11px;color:#6366f1;padding:2px 6px}
-
-/* ── 模态框 ── */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;z-index:500;opacity:0;pointer-events:none;transition:opacity 0.2s}
-.modal-overlay.show{opacity:1;pointer-events:all}
-.modal{background:#fff;border-radius:14px;padding:28px 28px 22px;width:420px;max-width:92vw;box-shadow:0 20px 60px rgba(0,0,0,0.18)}
-.modal h3{font-size:16px;font-weight:600;margin-bottom:8px;color:#1a1a1a}
-.modal p{font-size:13px;color:#666;line-height:1.7;margin-bottom:20px}
-.modal-btns{display:flex;gap:8px;justify-content:flex-end}
-.modal-cancel{padding:7px 16px;border:1px solid #e8e8e4;border-radius:8px;background:#fff;font-size:13px;cursor:pointer;font-family:inherit;color:#555}
-.modal-cancel:hover{background:#f5f5f0}
-.modal-confirm-red{padding:7px 16px;border:none;border-radius:8px;background:#ef4444;color:#fff;font-size:13px;cursor:pointer;font-family:inherit}
-.modal-confirm-red:hover{background:#dc2626}
-.modal-confirm-blue{padding:7px 16px;border:none;border-radius:8px;background:#4f46e5;color:#fff;font-size:13px;cursor:pointer;font-family:inherit}
-.modal-confirm-blue:hover{background:#4338ca}
-.progress-bar-wrap{background:#f0f0ec;border-radius:99px;height:6px;margin:12px 0 4px;overflow:hidden}
-.progress-bar{height:100%;background:#4f46e5;border-radius:99px;transition:width 0.3s;width:0%}
-.progress-label{font-size:12px;color:#888;text-align:center}
 </style>
 </head>
 <body>
@@ -129,24 +109,12 @@ select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;back
     </div>
     <div class="section-label">分类</div>
     <div class="cat-list" id="catList"></div>
-    <div class="sidebar-actions">
-      <button class="new-btn" id="newBtn">＋ 新建笔记</button>
-      <button class="import-btn" id="importBtn">📥 导入物化复习资料</button>
-      <button class="danger-btn" id="deleteAllBtn">🗑 删除全部笔记</button>
-    </div>
+    <button class="new-btn" id="newBtn">＋ 新建笔记</button>
   </div>
-
   <div class="note-list">
-    <div class="list-header">
-      <span id="listTitle">全部笔记</span>
-      <div style="display:flex;align-items:center;gap:6px">
-        <span id="listCount" style="font-size:12px;color:#bbb"></span>
-        <button id="deleteCatBtn" onclick="openDeleteCat()" title="删除当前分类所有笔记" style="padding:2px 7px;border:1px solid #fca5a5;border-radius:6px;background:transparent;color:#ef4444;font-size:11px;cursor:pointer;display:none">🗑</button>
-      </div>
-    </div>
+    <div class="list-header"><span id="listTitle">全部笔记</span><span id="listCount" style="font-size:12px;color:#bbb"></span></div>
     <div class="note-items" id="noteItems"></div>
   </div>
-
   <div class="editor" id="editor">
     <div id="emptyState" class="empty">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -172,7 +140,6 @@ select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;back
         <button class="tb-btn" id="splitBtn" onclick="toggleSplit()">⬛ 分屏</button>
         <select class="tb-select" id="catSelect">
           <option value="">选择分类</option>
-          <option>物理化学实验</option>
           <option>有机化学</option>
           <option>无机化学</option>
           <option>分析化学</option>
@@ -188,7 +155,7 @@ select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;back
       <div class="editor-tags" id="editorTags"></div>
       <div class="editor-area" id="editorArea">
         <div class="edit-pane" id="editPane">
-          <textarea id="noteContent" placeholder="开始记录你的想法...\n\n支持 Markdown 格式：\n## 标题\n**粗体** *斜体*\n- 列表项\n> 引用"></textarea>
+          <textarea id="noteContent" placeholder="开始记录你的想法...\n\n支持 Markdown 格式：\n## 标题\n**粗体** *斜体*\n- 列表项\n> 引用\n\n图片：点击工具栏「🖼 图片」上传"></textarea>
         </div>
         <div class="preview-pane" id="previewPane"></div>
       </div>
@@ -202,55 +169,6 @@ select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;back
     </div>
   </div>
 </div>
-
-<!-- 全部删除确认弹窗 -->
-<div class="modal-overlay" id="deleteAllModal">
-  <div class="modal">
-    <h3>⚠️ 删除全部笔记</h3>
-    <p>此操作将永久删除<strong id="deleteAllCount"></strong>，无法恢复。<br>确定要继续吗？</p>
-    <div class="progress-bar-wrap" id="delProgressWrap" style="display:none">
-      <div class="progress-bar" id="delProgressBar"></div>
-    </div>
-    <p class="progress-label" id="delProgressLabel"></p>
-    <div class="modal-btns" id="deleteAllBtns">
-      <button class="modal-cancel" onclick="closeModal('deleteAllModal')">取消</button>
-      <button class="modal-confirm-red" onclick="confirmDeleteAll()">确认全部删除</button>
-    </div>
-  </div>
-</div>
-
-<!-- 删除当前分类弹窗 -->
-<div class="modal-overlay" id="deleteCatModal">
-  <div class="modal">
-    <h3>🗑 删除分类笔记</h3>
-    <p>将永久删除分类 <strong id="deleteCatName"></strong> 下的 <strong id="deleteCatCount"></strong> 篇笔记，无法恢复。确定继续吗？</p>
-    <div class="progress-bar-wrap" id="catDelProgressWrap" style="display:none">
-      <div class="progress-bar" id="catDelProgressBar"></div>
-    </div>
-    <p class="progress-label" id="catDelProgressLabel"></p>
-    <div class="modal-btns" id="deleteCatBtns">
-      <button class="modal-cancel" onclick="closeModal('deleteCatModal')">取消</button>
-      <button class="modal-confirm-red" onclick="confirmDeleteCat()">确认删除</button>
-    </div>
-  </div>
-</div>
-
-<!-- 导入进度弹窗 -->
-<div class="modal-overlay" id="importModal">
-  <div class="modal">
-    <h3>📥 导入物化实验复习资料</h3>
-    <p>将导入 <strong>4 篇</strong>物化实验复习笔记到「物理化学实验」分类，包含选择题、填空题、简答题、数据分析题、论述题。</p>
-    <div class="progress-bar-wrap" id="impProgressWrap" style="display:none">
-      <div class="progress-bar" id="impProgressBar"></div>
-    </div>
-    <p class="progress-label" id="impProgressLabel"></p>
-    <div class="modal-btns" id="importBtns">
-      <button class="modal-cancel" onclick="closeModal('importModal')">取消</button>
-      <button class="modal-confirm-blue" onclick="confirmImport()">开始导入</button>
-    </div>
-  </div>
-</div>
-
 <div class="toast" id="toast"></div>
 
 <script>
@@ -262,911 +180,347 @@ const HEADERS = {'Content-Type':'application/json','apikey':SUPABASE_KEY,'Author
 
 let notes=[], currentId=null, currentCat='全部', viewMode='edit';
 
-// ── 物化复习资料数据 ─────────────────────────────────────
-const PCHEM_NOTES = [
-  {
-    title: '实验一：最大泡压法测定溶液表面张力',
-    category: '物理化学实验',
-    tags: ['选择题','填空题','简答题','数据分析','论述题'],
-    content: `## 核心知识点
-
-### 1. 表面张力基本性质
-- 存在于任何两相界面，方向与界面相切，指向使**表面积缩小**的一侧
-- 温度升高 → 表面张力减小；临界温度时趋近于**零**
-- 加入溶质 → 表面张力发生变化（取决于溶质本性和用量）
-
-### 2. 拉普拉斯方程（弯曲液面附加压力）
-凸液面：p' = p₀ + pₛ；凹液面：p' = p₀ - pₛ
-附加压力 **pₛ = 2σ/R**，方向**总指向曲率中心**
-
-### 3. 最大泡压法原理
-气泡形成：平面(R最大) → 曲率缩小 → **半球形(R=r，压力最大)** → 气泡逸出
-
-公式：**Δp最大 = 2σ/r，σ = K·Δh最大**
-
-仪器常数：**K = σ水 / Δh最大,水**（用纯水标定）
-
-### 4. 吉布斯吸附等温式
-**Γ = -(C/RT)(dσ/dC)T**
-- Γ > 0：正吸附，表面张力降低（**表面活性物质**，如正丁醇）
-- Γ < 0：负吸附，表面张力升高（非表面活性物质）
-
-### 5. 朗格谬尔公式求饱和吸附量
-C/Γ = C/Γ∞ + 1/(k·Γ∞)
-
-以 **C/Γ 对 C 作图**，斜率 = 1/Γ∞
-
-分子截面积：**S₀ = 1/(Γ∞·Nₐ)**
-
-吸附层厚度：**δ = Γ∞M/ρ**
-
----
-
-## 选择题（含答案解析）
-
-**1.** 气泡附加压力最大时，气泡形状为？
-A.平面 B.**半球形(R=r)** C.大于半球 D.椭球形
-→ **答案B**：R=r时最小，由pₛ=2σ/R知压力最大
-
-**2.** 毛细管端深入液面以下，测得表面张力将？
-A.偏大 B.**偏小** C.不变 D.不确定
-→ **答案B**：额外液柱压力使Δh读数偏小
-
-**3.** 仪器常数K的标定物质是？
-A.正丁醇 B.乙醇 C.**纯水** D.NaCl溶液 → **答案C**
-
-**4.** 正丁醇水溶液表面张力随浓度增大？
-A.升高 B.**降低** C.先升后降 D.不变
-→ **答案B**：正吸附，表面活性物质
-
-**5.** 气泡逸出速度过快，测得表面张力将？
-A.偏大 B.**偏小** C.不变
-→ **答案B**：气泡未达半球形即逸出，R>r，Δp偏小
-
----
-
-## 填空题
-
-1. R=r时附加压力达到___**最大值**___
-2. C/Γ 对 C 作图，斜率为___**1/Γ∞**___
-3. 正丁醇是___**表面活性**___物质，Γ值为___**正**___
-4. 气泡逸出太快导致σ测定值___**偏小**___
-5. 单个吸附分子截面积 S₀ = ___**1/(Γ∞Nₐ)**___
-
----
-
-## 简答题
-
-**Q1：毛细管口为何必须与液面相切？**
-
-答：① 高于液面：不出气泡；
-② 深入液面：气泡还需克服液柱压力，使Δh读数偏小，σ测定值偏小。
-必须相切才能保证 Δp = 2σ/r 成立。
-
-**Q2：为什么要读最大压力差？气泡太快有何影响？**
-
-答：只有气泡为半球形时R=r最小，附加压力最大，满足Δpmax=2σ/r。
-气泡太快则R>r，Δp偏小，测得σ偏小。读最大压力差是实验原理的核心要求。
-
-**Q3：系统检漏时U管出现高度差，是否影响实验？**
-
-答：**不影响**。系统气密性好，以高度差为基底，再测减压变化量，结果不受初始高度差影响。
-
-**Q4：每次脱出一个与连串两个气泡，结果是否相同？**
-
-答：**不同**。连串两个时气泡未达最小曲率即逸出，不能读到真正最大压差，σ偏小。
-
----
-
-## 数据分析题
-
-**题：** 25°C，σ水=71.97×10⁻³ N/m，Δh水=8.5 cm
-
-（1）K = σ水/Δh水 = 71.97×10⁻³/8.5 = **8.47×10⁻³ N/(m·cm)**
-
-（2）若Δhmax=6.5 cm，则 σ = 8.47×10⁻³×6.5 = **55.1×10⁻³ N/m**
-
-（3）温度升高到35°C：水的σ降低，若仍用25°C的K值计算，K偏大，σ计算值偏大。实验必须恒温并重新标定K。
-
----
-
-## 论述题
-
-**最大泡压法原理及实验成功关键**
-
-**原理：** 基于拉普拉斯方程。毛细管口与液面相切，缓慢减压，气泡形成至半球形时R=r，附加压力最大 Δpmax=2σ/r，记录此时Δhmax，由σ=K·Δhmax计算（K用纯水标定）。
-
-**关键因素：**
-1. 系统气密性好（漏气→压差不稳）
-2. 毛细管洁净干燥垂直（污染→界面性质改变）
-3. 管口恰与液面相切（深入→σ偏小；高于→不出泡）
-4. 气泡单个缓慢逸出，5~10 s/个（太快→σ偏小）
-5. 严格恒温（温度影响σ值）`
-  },
-  {
-    title: '实验二：黏度法测水溶性高聚物分子量',
-    category: '物理化学实验',
-    tags: ['选择题','填空题','简答题','数据分析','论述题'],
-    content: `## 核心知识点
-
-### 1. 各种黏度概念（η：溶液，η₀：纯溶剂）
-
-| 名称 | 符号 | 公式 |
-|------|------|------|
-| 相对黏度 | ηr | η/η₀ = t/t₀ |
-| 增比黏度 | ηsp | ηr - 1 |
-| 比浓黏度 | ηsp/C | 增比黏度/浓度 |
-| **特性黏度** | [η] | lim(C→0) ηsp/C |
-
-### 2. 泊肃叶公式简化条件
-① 忽略动能校正（**t > 100 s**）
-② 稀溶液密度 ≈ 溶剂密度
-
-→ 最终：**ηr = t/t₀**
-
-### 3. 外推法求特性黏度（两线截距均为[η]）
-- ηsp/C = [η] + K[η]²C（**斜率为正**）
-- lnηr/C = [η] - B[η]²C（**斜率为负**）
-
-### 4. Mark-Houwink 方程
-**[η] = K·Mη^a**
-
-右旋糖酐水溶液：
-- 25°C：K=0.0922 cm³/g，a=0.5
-- 37°C：K=0.141 cm³/g，a=0.46
-
-### 5. 乌氏黏度计 vs 奥氏黏度计
-
-| 特点 | 乌氏 | 奥氏 |
-|------|------|------|
-| C管 | 有（通大气） | 无 |
-| 可直接稀释 | **可以** | 不行 |
-| 每次加液量 | 无需等体积 | 必须等体积 |
-
-C管作用：打开后形成**气承悬液柱**，消除A管液面高度影响
-
-**未打开C管 → 流出时间偏大 → 分子量偏大**
-
----
-
-## 选择题（含答案解析）
-
-**1.** 黏度法得到的是哪种平均分子量？
-A.数均 B.重均 C.**粘均** D.Z均 → **答案C**
-
-**2.** 乌氏黏度计C管的作用？
-A.控制流速 B.**消除A管液面影响，形成气承悬液柱**
-C.防蒸发 D.增加静压力 → **答案B**
-
-**3.** 外推法中两条线交于同一截距代表？
-A.斜率相同 B.**特性黏度[η]** C.比浓黏度 → **答案B**
-
-**4.** 若高聚物未完全溶解就测定，分子量将？
-A.**偏低** B.偏高 C.不变
-→ **答案A**：起始浓度偏低，ηr偏小，[η]偏小，M偏低
-
-**5.** 溶液流出时间要求 t>100 s，是为了？
-A.减小实验误差 B.**忽略动能校正项** C.保证恒温 → **答案B**
-
----
-
-## 填空题
-
-1. ηr=t/t₀成立条件：t>**100**s，且溶液密度≈**溶剂**密度
-2. ηsp/C~C直线斜率为**正**，lnηr/C~C斜率为**负**
-3. 高聚物溶液必须**完全溶解**，否则分子量**偏低**
-4. 平行实验3次，相差不超过**0.2** s
-5. 25°C右旋糖酐：K=**0.0922** cm³/g，a=**0.5**
-6. 未打开C管 → 流出时间**偏大** → 分子量**偏大**
-
----
-
-## 简答题
-
-**Q1：乌氏黏度计C管的作用？不打开C管会怎样？**
-
-答：C管打开后D球通大气，毛细管下端形成气承悬液柱，消除A管液面高度变化对驱动压力的影响，可直接在管内稀释，无需每次等体积加液。
-
-若不打开C管：A管液面对毛细管有额外驱动力，流出时间t偏大，ηr=t/t₀偏大，外推得[η]偏大，计算M**偏大**。
-
-**Q2：为什么黏度计必须洁净无尘？**
-
-答：① 杂质影响液体流出时间的稳定性；
-② 杂质溶入溶液改变成分和浓度，使测定结果不可靠，对分子量影响较大。
-
-**Q3：特性黏度与纯溶剂黏度是否相同？为何用[η]测分子量？**
-
-答：不同。纯溶剂黏度是溶剂分子间内摩擦；特性黏度是无限稀释时只反映高分子与溶剂间内摩擦，是该高聚物在特定溶剂中的固有特性，与浓度无关，可通过Mark-Houwink方程与分子量建立定量关系。
-
----
-
-## 数据分析题
-
-**题：** 25°C，t₀=108.0 s，初始浓度c₀=1.00 g/100mL
-
-| C'(相对) | t均/s | ηr | ηsp | ηsp/C' | lnηr/C' |
-|---------|-------|-----|-----|--------|---------|
-| 1 | 138.5 | 1.282 | 0.282 | 0.282 | 0.248 |
-| 5/6 | 134.2 | 1.243 | 0.243 | 0.292 | 0.256 |
-| 2/3 | 129.8 | 1.202 | 0.202 | 0.303 | 0.275 |
-| 1/2 | 124.0 | 1.148 | 0.148 | 0.296 | 0.277 |
-| 1/3 | 118.5 | 1.097 | 0.097 | 0.291 | 0.278 |
-
-外推截距 [η] ≈ 0.275（相对浓度单位）
-
-**M = ([η]/K)^(1/a) = (0.275/0.0922)² ≈ 8.9×10⁴ g/mol**
-
----
-
-## 论述题
-
-**黏度法测高聚物分子量原理及乌氏黏度计优点**
-
-原理：利用[η]=KMa（Mark-Houwink方程）。测不同浓度溶液流出时间，由ηr=t/t₀计算各黏度量，分别以ηsp/C和lnηr/C对C作图并外推至C=0，截距即[η]，代入Mark-Houwink方程得粘均分子量。
-
-乌氏黏度计优点：C管消除A管液面影响，可在管内直接稀释，一次装液完成全部不同浓度测定，操作简便；奥氏黏度计每次须严格加等体积液体，较繁琐。`
-  },
-  {
-    title: '实验三：电导法测定乙酸乙酯皂化反应速率常数',
-    category: '物理化学实验',
-    tags: ['选择题','填空题','简答题','数据分析','论述题'],
-    content: `## 核心知识点
-
-### 1. 反应方程式
-**CH₃COOC₂H₅ + NaOH → CH₃COONa + C₂H₅OH**
-二级反应（两反应物初始浓度均为 a）
-
-### 2. 二级反应积分式
-**1/C - 1/a = kt**
-
-以 **1/C 对 t 作图** → 直线，斜率 = k
-
-二级反应半衰期：**t₁/₂ = 1/(ka)**
-
-### 3. 电导法原理
-OH⁻（高摩尔电导率λ）→ CH₃COO⁻（低摩尔电导率）
-→ 溶液电导率**持续下降**
-
-**浓度换算：**
-C = (Gt - G∞)/(G₀ - G∞) × a
-
-### 4. 速率常数图解法
-**(G₀ - Gt)/(Gt - G∞) = ka·t**
-
-以该比值对 t 作图，**斜率 = ka**，除以 a 得 k
-
-### 5. 活化能（Arrhenius方程）
-**Ea = RT₁T₂/(T₂-T₁) × ln(k₂/k₁)**
-
-以 lnk 对 1/T 作图，斜率 = **-Ea/R**
-
-### 6. 关键操作
-- 等浓度等体积混合，**迅速**记录t=0时电导
-- **G∞**：加热至 50~60°C 使反应完全，冷却至实验温度后测定
-
----
-
-## 选择题（含答案解析）
-
-**1.** 皂化反应属于？
-A.零级 B.一级 C.**二级** D.三级 → **答案C**
-
-**2.** 随反应进行，溶液电导率？
-A.增大 B.**减小** C.先增后减 D.不变
-→ **答案B**：OH⁻被CH₃COO⁻取代，λ(OH⁻)≫λ(CH₃COO⁻)
-
-**3.** 二级（等浓度）最佳线性作图？
-A.C vs t B.lnC vs t C.**1/C vs t** D.C² vs t → **答案C**
-
-**4.** 初始浓度a增大一倍，半衰期t₁/₂？
-A.增大一倍 B.**减小一半** C.不变
-→ **答案B**：t₁/₂=1/(ka)，a增大则t₁/₂减小
-
-**5.** G∞测定方法？
-A.外推法 B.**加热至50~60°C完全反应后冷却测定**
-C.理论计算 D.用纯乙醇代替 → **答案B**
-
----
-
-## 填空题
-
-1. 二级反应积分式：**1/C - 1/a = kt**
-2. 以(G₀-Gt)/(Gt-G∞)对t作图，斜率 = **ka**
-3. G∞测定：溶液加热至**50~60**°C促进完全后冷却测定
-4. 以lnk对1/T作图，斜率 = **-Ea/R**
-5. 反应混合后电导率持续下降，原因：**OH⁻被CH₃COO⁻取代，摩尔电导率大幅降低**
-6. 二级反应半衰期 t₁/₂ = **1/(ka)**
-
----
-
-## 简答题
-
-**Q1：为什么能用电导率变化测皂化反应速率常数？**
-
-答：皂化反应中OH⁻不断被CH₃COO⁻取代（λ(OH⁻)≫λ(CH₃COO⁻)），电导率持续下降，且变化量与OH⁻浓度变化成正比。测定G₀、Gt、G∞，换算出各时刻OH⁻浓度，代入二级反应速率方程即可求k。
-
-**Q2：G₀、Gt、G∞分别如何测定？**
-
-答：
-- **G₀**：混合前NaOH溶液的电导率（换算）
-- **Gt**：混合后每隔固定时间测一次电导率
-- **G∞**：将反应液置于50~60°C水浴30~60 min使反应完全，冷却至实验温度后测定
-
-**Q3：为什么两反应物必须等浓度等体积混合？**
-
-答：等浓度等体积是保证反应初始[乙酸乙酯]=[NaOH]=a的前提，只有在此条件下二级反应方程才能简化为 1/C-1/a=kt，才能用单一变量C描述反应进程并求k。
-
----
-
-## 数据分析题
-
-**题：** 25°C，a=0.01 mol/L，G₀=58.0，G∞=20.0 mS/cm
-
-| t/min | Gt/(mS/cm) | (G₀-Gt)/(Gt-G∞) |
-|-------|-----------|-----------------|
-| 5 | 50.2 | 0.247 |
-| 10 | 44.8 | 0.526 |
-| 15 | 40.5 | 0.811 |
-| 20 | 37.2 | 1.118 |
-| 25 | 34.5 | 1.459 |
-
-线性拟合斜率：ka = (1.459-0.247)/(25-5) = 0.0606 min⁻¹
-
-**k₂₅ = 0.0606/0.01 = 6.06 L/(mol·min)**
-
-活化能（已知k₃₅=0.110 L/(mol·min)）：
-Ea = 8.314×298×308/10 × ln(0.110/0.0606) ≈ **45.6 kJ/mol**
-
----
-
-## 论述题
-
-**电导法测皂化反应速率常数的原理与操作要点**
-
-原理：皂化反应为二级反应，电导率随OH⁻被CH₃COO⁻取代而线性下降。通过测定不同时刻电导率Gt，利用C=(Gt-G∞)/(G₀-G∞)×a换算浓度，以(G₀-Gt)/(Gt-G∞)对t作图，斜率=ka，求得速率常数k。
-
-操作要点：① 等浓度等体积混合，迅速计时；② 恒温保持整个实验过程温度一致；③ G∞需加热至完全反应后冷却测定；④ 可在两个温度下测定，用Arrhenius方程求活化能Ea。`
-  },
-  {
-    title: '实验四：电池电动势与热力学函数测定',
-    category: '物理化学实验',
-    tags: ['选择题','填空题','简答题','数据分析','论述题'],
-    content: `## 核心知识点
-
-### 1. 电动势与三大热力学函数
-
-**ΔrGm = -nFE**
-
-**ΔrSm = nF(∂E/∂T)P**
-
-**ΔrHm = ΔrGm + TΔrSm = -nFE + nFT(∂E/∂T)P**
-
-其中：n=转移电子数，F=96485 C/mol，(∂E/∂T)P=温度系数
-
-### 2. 能斯特方程
-**E = E° - (RT/nF)lnQ**
-
-**lnK° = nFE°/(RT)**
-
-E°>0 → K°>1 → 反应正向自发
-
-### 3. 对消法（补偿法）测EMF
-
-**核心：使检流计示数为零 → 被测电池电流为零 → 无内阻压降无极化 → 测得真正EMF**
-
-不能用伏特表直接测：有电流→内阻压降Ir→读数偏低→极化效应
-
-### 4. 盐桥
-- 原因：两溶液界面**离子扩散速率不同**产生液接电势
-- 消除：使用**饱和KCl**（或KNO₃）盐桥
-
-### 5. 实验方法
-测不同温度T下的E，以**E对T作图**：
-- 斜率 = ∂E/∂T（温度系数）
-- 代入公式求ΔrGm、ΔrSm、ΔrHm
-
----
-
-## 选择题（含答案解析）
-
-**1.** ΔrGm 与 E 的关系？
-A.ΔrGm=nFE B.**ΔrGm=-nFE** C.ΔrGm=nFE/RT → **答案B**
-
-**2.** 对消法检流计为零说明？
-A.断路 B.内阻为零 C.**被测电池电流为零，测得真正EMF** → **答案C**
-
-**3.** 盐桥的作用？
-A.增大电流 B.**消除液接电势** C.提高电动势 → **答案B**
-
-**4.** ∂E/∂T > 0 时，ΔrSm？
-A.**> 0（正，体系从环境吸热）** B.< 0 C.= 0 → **答案A**
-
-**5.** 由E°可计算？
-A.反应速率 B.活化能 C.**平衡常数K°** D.反应级数 → **答案C**
-
----
-
-## 填空题
-
-1. ΔrGm = **-nFE**；ΔrSm = **nF(∂E/∂T)P**
-2. 对消法检流计示数为**零**，消除了内阻电压降和**极化**影响
-3. E vs T 直线斜率 = **温度系数(∂E/∂T)P**
-4. lnK° = **nFE°/RT**，E°>0时K°**大于1**
-5. 液接电势产生原因：**不同离子在界面扩散速率不同**
-6. 消除液接电势的方法：使用**盐桥**（饱和KCl溶液）
-
----
-
-## 简答题
-
-**Q1：为何必须用对消法测电动势？**
-
-答：直接用伏特表有电流通过，产生：
-① **内阻压降**：U=E-Ir，读数偏低；
-② **极化效应**：电极偏离平衡，读数不准。
-
-对消法通过调节使检流计为零，确保电流为零，测得真正热力学平衡电动势。
-
-**Q2：已知E和温度系数，如何计算三个热力学函数？**
-
-答：
-- ΔrGm = -nFE
-- ΔrSm = nF(∂E/∂T)P
-- ΔrHm = -nFE + nFT(∂E/∂T)P
-
-若∂E/∂T>0 → ΔrSm>0，电池从环境吸热补充做功不足（吸热电池）
-若∂E/∂T<0 → ΔrSm<0，电池做功同时向环境放热
-
-**Q3：什么是液接电势？如何消除？**
-
-答：两种不同电解质溶液界面处，不同离子因迁移速率不同，在界面两侧形成电荷分布不均，产生的电势差称为液接电势（扩散电势）。消除方法：在两溶液间架设饱和KCl盐桥，利用K⁺和Cl⁻迁移速率几乎相等的特点将液接电势降至可忽略水平。
-
----
-
-## 数据分析题
-
-**题：** 某电池在不同温度下的电动势
-
-| T/°C | 15 | 20 | 25 | 30 | 35 |
-|------|----|----|----|----|-----|
-| E/V | 0.4502 | 0.4468 | 0.4433 | 0.4397 | 0.4361 |
-
-（1）温度系数：
-∂E/∂T = (0.4361-0.4502)/(308-288) = **-7.05×10⁻⁴ V/K**
-
-（2）25°C（T=298K），n=2：
-
-ΔrGm = -2×96485×0.4433 = **-85.6 kJ/mol**
-
-ΔrSm = 2×96485×(-7.05×10⁻⁴) = **-136.0 J/(mol·K)**
-
-ΔrHm = -85550 + 298×(-136.0) = **-126.1 kJ/mol**
-
----
-
-## 论述题
-
-**电池电动势法测定热力学函数的原理与优缺点**
-
-原理：可逆电池恒温恒压下做最大功等于吉布斯自由能减少量，即ΔrGm=-nFE。精确测定不同温度T下的E(T)，以E对T作图，斜率为温度系数(∂E/∂T)P，计算：
-- ΔrGm = -nFE
-- ΔrSm = nF(∂E/∂T)P  
-- ΔrHm = -nFE + nFT(∂E/∂T)P
-
-优点：① 精度高（电压可达±0.01 mV）；② 一次实验获得三个热力学函数；③ 条件温和，操作简便；④ 可由E°计算平衡常数K°。
-
-关键要求：必须用对消法，保证电池在准可逆条件下工作（电流≈0），否则极化效应使测量值偏低。`
-  }
-];
-
-// ── 工具函数 ─────────────────────────────────────────────
-function toast(msg, dur) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), dur || 2000);
-}
-
-function openModal(id) { document.getElementById(id).classList.add('show'); }
-function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+function toast(msg,dur){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur||2000)}
 
 // ── 图片上传 ────────────────────────────────────────────
-async function uploadImage(input) {
+async function uploadImage(input){
   const file = input.files[0];
-  if (!file) return;
+  if(!file) return;
   const prog = document.getElementById('uploadProgress');
   prog.textContent = '上传中...';
-  const fileName = Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+
+  // 先尝试上传到 Supabase Storage
+  const fileName = Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
   const bucket = 'note-images';
+
   try {
     const r = await fetch(STORAGE_API + '/' + bucket + '/' + fileName, {
       method: 'POST',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': file.type, 'x-upsert': 'true' },
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': file.type,
+        'x-upsert': 'true'
+      },
       body: file
     });
-    if (r.ok) {
-      insertImageMd(SUPABASE_URL + '/storage/v1/object/public/' + bucket + '/' + fileName, file.name);
+
+    if(r.ok){
+      const publicUrl = SUPABASE_URL + '/storage/v1/object/public/' + bucket + '/' + fileName;
+      insertImageMd(publicUrl, file.name);
       prog.textContent = '✓ 上传成功';
+      setTimeout(()=>prog.textContent='', 2000);
     } else {
+      // Storage bucket不存在，改用Base64嵌入
       await insertBase64(file);
-      prog.textContent = '✓ 已嵌入';
+      prog.textContent = '✓ 已嵌入（Base64）';
+      setTimeout(()=>prog.textContent='', 2000);
     }
-  } catch (e) {
+  } catch(e) {
+    // 网络失败也用Base64
     await insertBase64(file);
     prog.textContent = '✓ 已嵌入';
+    setTimeout(()=>prog.textContent='', 2000);
   }
-  setTimeout(() => prog.textContent = '', 2000);
   input.value = '';
 }
 
-function insertImageMd(url, name) {
+function insertImageMd(url, name){
   const ta = document.getElementById('noteContent');
-  const md = '\n![' + (name || '图片') + '](' + url + ')\n';
+  const md = '\n![' + (name||'图片') + '](' + url + ')\n';
   const s = ta.selectionStart;
-  ta.value = ta.value.slice(0, s) + md + ta.value.slice(s);
+  ta.value = ta.value.slice(0,s) + md + ta.value.slice(s);
   ta.selectionStart = ta.selectionEnd = s + md.length;
-  ta.focus(); updatePreview(); resetSaveBtn();
+  ta.focus();
+  updatePreview();
+  resetSaveBtn();
 }
 
-function insertBase64(file) {
+function insertBase64(file){
   return new Promise(resolve => {
     const reader = new FileReader();
     reader.onload = e => {
       const md = '\n![' + file.name + '](' + e.target.result + ')\n';
       const ta = document.getElementById('noteContent');
       const s = ta.selectionStart;
-      ta.value = ta.value.slice(0, s) + md + ta.value.slice(s);
+      ta.value = ta.value.slice(0,s) + md + ta.value.slice(s);
       ta.selectionStart = ta.selectionEnd = s + md.length;
-      ta.focus(); updatePreview(); resetSaveBtn(); resolve();
+      ta.focus();
+      updatePreview();
+      resetSaveBtn();
+      resolve();
     };
     reader.readAsDataURL(file);
   });
 }
 
-// ── Markdown 渲染 ─────────────────────────────────────────
-function mdToHtml(md) {
+// ── Markdown 渲染 ──────────────────────────────────────
+function mdToHtml(md){
+  // 先提取数学公式，避免被转义破坏
+  let mathBlocks = [];
+  let mathInlines = [];
+  // 保护块级公式 $$...$$
+  md = md.replace(/\$\$([\s\S]+?)\$\$/g, function(m, formula) {
+    mathBlocks.push(formula);
+    return 'MATHBLOCK' + (mathBlocks.length-1) + 'END';
+  });
+  // 保护行内公式 $...$
+  md = md.replace(/\$([^\$\n]+?)\$/g, function(m, formula) {
+    mathInlines.push(formula);
+    return 'MATHINLINE' + (mathInlines.length-1) + 'END';
+  });
   let h = md
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/```([\s\S]*?)```/g, (m, c) => '<pre><code>' + c.trim() + '</code></pre>')
+    // 转义
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    // 先保护代码块
+    .replace(/```([\s\S]*?)```/g, (m,c) => '<pre><code>' + c.trim() + '</code></pre>')
     .replace(/`([^`]+)`/g, '<code>$1</code>')
+    // 图片（必须在链接之前）
     .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">')
+    // 链接
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+    // 标题
     .replace(/^### (.+)$/gm, '<h3>$1</h3>')
     .replace(/^## (.+)$/gm, '<h2>$1</h2>')
     .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    // 粗体斜体
     .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    // 分割线
     .replace(/^---+$/gm, '<hr>')
+    // 引用
     .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+    // 有序列表
     .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+    // 无序列表
     .replace(/^[-*] (.+)$/gm, '<li>$1</li>')
+    // 换行
     .replace(/\n\n/g, '</p><p>')
     .replace(/\n/g, '<br>');
+
+  // 包裹列表
+  h = h.replace(/(<li>.*?<\/li>)(\s*<li>)/gs, '$1$2');
   h = h.replace(/((?:<li>.*?<\/li>\s*)+)/g, '<ul>$1</ul>');
-  return '<p>' + h + '</p>';
+
+  h = '<p>' + h + '</p>';
+  // 恢复块级公式
+  h = h.replace(/MATHBLOCK(\d+)END/g, function(m, i) {
+    try { return '<div class="math-block">' + katex.renderToString(mathBlocks[i], {displayMode:true, throwOnError:false}) + '</div>'; }
+    catch(e) { return '<div class="math-block">$$' + mathBlocks[i] + '$$</div>'; }
+  });
+  // 恢复行内公式
+  h = h.replace(/MATHINLINE(\d+)END/g, function(m, i) {
+    try { return katex.renderToString(mathInlines[i], {displayMode:false, throwOnError:false}); }
+    catch(e) { return '$' + mathInlines[i] + '$'; }
+  });
+  return h;
 }
 
-function updatePreview() {
-  document.getElementById('previewPane').innerHTML = mdToHtml(document.getElementById('noteContent').value);
+function updatePreview(){
+  const md = document.getElementById('noteContent').value;
+  document.getElementById('previewPane').innerHTML = mdToHtml(md);
 }
 
-function togglePreview() {
-  const pp = document.getElementById('previewPane'), ep = document.getElementById('editPane');
-  const btn = document.getElementById('previewBtn'), sb = document.getElementById('splitBtn');
-  if (viewMode === 'preview') {
+function togglePreview(){
+  const pp = document.getElementById('previewPane');
+  const ep = document.getElementById('editPane');
+  const btn = document.getElementById('previewBtn');
+  const sb = document.getElementById('splitBtn');
+  if(viewMode === 'preview'){
     viewMode = 'edit';
-    pp.classList.remove('show'); pp.style.display = 'none';
-    ep.style.display = 'block';
-    btn.classList.remove('active'); btn.textContent = '👁 预览';
+    pp.classList.remove('show'); pp.style.display='none';
+    ep.style.display='block';
+    btn.classList.remove('active'); btn.textContent='👁 预览';
     document.getElementById('editorArea').classList.remove('split-view');
-    sb.style.display = '';
+    sb.style.display='';
   } else {
-    viewMode = 'preview'; updatePreview();
-    ep.style.display = 'none';
-    pp.classList.add('show'); pp.style.display = 'block';
-    btn.classList.add('active'); btn.textContent = '✏ 编辑';
+    viewMode = 'preview';
+    updatePreview();
+    ep.style.display='none';
+    pp.classList.add('show'); pp.style.display='block';
+    btn.classList.add('active'); btn.textContent='✏ 编辑';
     document.getElementById('editorArea').classList.remove('split-view');
-    sb.style.display = 'none';
+    sb.style.display='none';
   }
 }
 
-function toggleSplit() {
+function toggleSplit(){
   const area = document.getElementById('editorArea');
-  const pp = document.getElementById('previewPane'), ep = document.getElementById('editPane');
-  const btn = document.getElementById('splitBtn'), pb = document.getElementById('previewBtn');
-  if (viewMode === 'split') {
+  const pp = document.getElementById('previewPane');
+  const ep = document.getElementById('editPane');
+  const btn = document.getElementById('splitBtn');
+  const pb = document.getElementById('previewBtn');
+  if(viewMode === 'split'){
     viewMode = 'edit';
     area.classList.remove('split-view');
-    area.style.display = 'flex'; area.style.flexDirection = 'column';
-    ep.style.display = 'block'; ep.style.flex = '1';
-    pp.classList.remove('show'); pp.style.display = 'none';
-    btn.classList.remove('active'); btn.textContent = '⬛ 分屏'; pb.style.display = '';
+    area.style.display='flex'; area.style.flexDirection='column';
+    ep.style.display='block'; ep.style.flex='1';
+    pp.classList.remove('show'); pp.style.display='none';
+    btn.classList.remove('active'); btn.textContent='⬛ 分屏';
+    pb.style.display='';
   } else {
-    viewMode = 'split'; updatePreview();
+    viewMode = 'split';
+    updatePreview();
     area.classList.add('split-view');
-    area.style.display = 'flex'; area.style.flexDirection = 'row';
-    ep.style.display = 'block'; ep.style.flex = '1';
-    pp.classList.add('show'); pp.style.display = 'block'; pp.style.flex = '1';
-    btn.classList.add('active'); btn.textContent = '⬛ 退出分屏'; pb.style.display = 'none';
+    area.style.display='flex'; area.style.flexDirection='row';
+    ep.style.display='block'; ep.style.flex='1';
+    pp.classList.add('show'); pp.style.display='block'; pp.style.flex='1';
+    btn.classList.add('active'); btn.textContent='⬛ 退出分屏';
+    pb.style.display='none';
   }
 }
 
-// ── 数据操作 ─────────────────────────────────────────────
-async function fetchNotes() {
-  document.getElementById('noteItems').innerHTML = '<div class="loading">加载中...</div>';
-  const r = await fetch(API + '?order=updated_at.desc', { headers: { ...HEADERS, 'Prefer': 'return=representation' } });
-  notes = await r.json();
-  if (!Array.isArray(notes)) notes = [];
+// ── 数据操作 ────────────────────────────────────────────
+async function fetchNotes(){
+  document.getElementById('noteItems').innerHTML='<div class="loading">加载中...</div>';
+  const r=await fetch(API+'?order=updated_at.desc',{headers:{...HEADERS,'Prefer':'return=representation'}});
+  notes=await r.json();
+  if(!Array.isArray(notes)) notes=[];
   renderAll();
 }
 
 const CAT_ICONS = {
-  '全部': '📋', '物理化学实验': '🧪', '有机化学': '⚗️', '无机化学': '🔭',
-  '分析化学': '🔬', '物理化学': '⚡', '编程': '💻', '数学': '📐',
-  '英语': '🌐', '读书笔记': '📖', '其他': '📁'
+  '全部':'📋','有机化学':'⚗️','无机化学':'🧪','分析化学':'🔬',
+  '物理化学':'⚡','编程':'💻','数学':'📐','英语':'🌐',
+  '读书笔记':'📖','其他':'📁'
 };
 
-function cats() {
-  const c = ['全部'];
-  notes.forEach(n => { if (n.category && !c.includes(n.category)) c.push(n.category); });
+function cats(){
+  const c=['全部'];
+  notes.forEach(n=>{if(n.category&&!c.includes(n.category))c.push(n.category)});
   return c;
 }
-function catCount(c) { return c === '全部' ? notes.length : notes.filter(n => n.category === c).length; }
-function catIcon(c) { return CAT_ICONS[c] || '📁'; }
+function catCount(c){return c==='全部'?notes.length:notes.filter(n=>n.category===c).length}
+function catIcon(c){return CAT_ICONS[c]||'📁'}
 
-function renderAll() { renderCats(); renderList(); }
+function renderAll(){renderCats();renderList()}
 
-function renderCats() {
-  document.getElementById('catList').innerHTML = cats().map(c => `
-    <div class="cat-item${c === currentCat ? ' active' : ''}" onclick="selectCat('${c}')">
+function renderCats(){
+  document.getElementById('catList').innerHTML=cats().map(c=>`
+    <div class="cat-item${c===currentCat?' active':''}" onclick="selectCat('${c}')">
       ${catIcon(c)} ${c}
       <span class="cat-count">${catCount(c)}</span>
     </div>`).join('');
 }
 
-function selectCat(c) { currentCat = c; document.getElementById('listTitle').textContent = c; renderCats(); renderList(); }
+function selectCat(c){currentCat=c;document.getElementById('listTitle').textContent=c;renderCats();renderList()}
 
-function filtered() { return currentCat === '全部' ? notes : notes.filter(n => n.category === currentCat); }
+function filtered(){return currentCat==='全部'?notes:notes.filter(n=>n.category===currentCat)}
 
-function renderList() {
-  const q = document.getElementById('searchInput').value.trim().toLowerCase();
-  let list = filtered();
-  if (q) list = list.filter(n => (n.title || '').toLowerCase().includes(q) || (n.content || '').toLowerCase().includes(q) || ((n.tags || []).join(' ')).toLowerCase().includes(q));
-  document.getElementById('listCount').textContent = list.length + '篇';
-  // 非「全部」分类且有笔记时显示分类删除按钮
-  const catBtn = document.getElementById('deleteCatBtn');
-  catBtn.style.display = (currentCat !== '全部' && list.length > 0) ? 'inline-block' : 'none';
-  document.getElementById('noteItems').innerHTML = list.length ? list.map(n => `
-    <div class="note-item${n.id === currentId ? ' active' : ''}" onclick="openNote('${n.id}')">
-      <div class="note-title">${n.title || '无标题'}</div>
-      <div class="note-preview">${(n.content || '').replace(/!\[.*?\]\(data:.*?\)/g, '[图片]').replace(/[#\->\`*!]/g, '').slice(0, 50)}</div>
+function renderList(){
+  const q=document.getElementById('searchInput').value.trim().toLowerCase();
+  let list=filtered();
+  if(q)list=list.filter(n=>(n.title||'').toLowerCase().includes(q)||(n.content||'').toLowerCase().includes(q)||((n.tags||[]).join(' ')).toLowerCase().includes(q));
+  document.getElementById('listCount').textContent=list.length+'篇';
+  document.getElementById('noteItems').innerHTML=list.length?list.map(n=>`
+    <div class="note-item${n.id===currentId?' active':''}" onclick="openNote('${n.id}')">
+      <div class="note-title">${n.title||'无标题'}</div>
+      <div class="note-preview">${(n.content||'').replace(/!\[.*?\]\(data:.*?\)/g,'[图片]').replace(/[#\->`*!]/g,'').slice(0,50)}</div>
       <div class="note-meta">
-        ${(n.tags || []).slice(0, 3).map(t => `<span class="tag">${t}</span>`).join('')}
-        <span class="note-date">${(n.updated_at || '').slice(0, 10)}</span>
+        ${(n.tags||[]).slice(0,3).map(t=>`<span class="tag">${t}</span>`).join('')}
+        <span class="note-date">${(n.updated_at||'').slice(0,10)}</span>
       </div>
-    </div>`).join('') : '<div class="loading">暂无笔记</div>';
+    </div>`).join(''):'<div class="loading">暂无笔记</div>';
 }
 
-function openNote(id) {
-  currentId = id;
-  const n = notes.find(x => x.id === id);
-  if (!n) return;
-  document.getElementById('emptyState').style.display = 'none';
-  const ec = document.getElementById('editorContent');
-  ec.style.display = 'flex'; ec.style.flexDirection = 'column';
-  document.getElementById('noteTitle').value = n.title || '';
-  document.getElementById('noteContent').value = n.content || '';
-  document.getElementById('catSelect').value = n.category || '';
-  renderEditorTags(n.tags || []);
-  updateCount(); resetSaveBtn();
-  if (viewMode === 'preview' || viewMode === 'split') updatePreview();
+function openNote(id){
+  currentId=id;
+  const n=notes.find(x=>x.id===id);
+  if(!n)return;
+  document.getElementById('emptyState').style.display='none';
+  const ec=document.getElementById('editorContent');
+  ec.style.display='flex'; ec.style.flexDirection='column';
+  document.getElementById('noteTitle').value=n.title||'';
+  document.getElementById('noteContent').value=n.content||'';
+  document.getElementById('catSelect').value=n.category||'';
+  renderEditorTags(n.tags||[]);
+  updateCount();
+  resetSaveBtn();
+  if(viewMode==='preview'||viewMode==='split') updatePreview();
   renderList();
 }
 
-function renderEditorTags(tags) {
-  document.getElementById('editorTags').innerHTML =
-    tags.map(t => `<span class="etag">${t}<span class="etag-rm" onclick="removeTag('${t}')">×</span></span>`).join('') +
+function renderEditorTags(tags){
+  document.getElementById('editorTags').innerHTML=
+    tags.map(t=>`<span class="etag">${t}<span class="etag-rm" onclick="removeTag('${t}')">×</span></span>`).join('')+
     `<input class="tag-input" placeholder="+ 添加标签" id="tagInput" onkeydown="addTag(event)">`;
 }
 
-function removeTag(t) { const n = notes.find(x => x.id === currentId); if (!n) return; n.tags = (n.tags || []).filter(x => x !== t); renderEditorTags(n.tags); }
-function addTag(e) {
-  if (e.key !== 'Enter') return;
-  const v = e.target.value.trim(); if (!v) return;
-  const n = notes.find(x => x.id === currentId);
-  if (n) { n.tags = n.tags || []; if (!n.tags.includes(v)) n.tags.push(v); renderEditorTags(n.tags); }
-  e.target.value = '';
+function removeTag(t){const n=notes.find(x=>x.id===currentId);if(!n)return;n.tags=(n.tags||[]).filter(x=>x!==t);renderEditorTags(n.tags)}
+function addTag(e){
+  if(e.key!=='Enter')return;
+  const v=e.target.value.trim();if(!v)return;
+  const n=notes.find(x=>x.id===currentId);
+  if(n){n.tags=n.tags||[];if(!n.tags.includes(v))n.tags.push(v);renderEditorTags(n.tags)}
+  e.target.value='';
 }
 
-function updateCount() { document.getElementById('wordCount').textContent = (document.getElementById('noteContent').value || '').length + ' 字'; }
-function resetSaveBtn() { const b = document.getElementById('saveBtn'); b.textContent = '保存'; b.className = 'save-btn'; }
+function updateCount(){document.getElementById('wordCount').textContent=(document.getElementById('noteContent').value||'').length+' 字'}
+function resetSaveBtn(){const b=document.getElementById('saveBtn');b.textContent='保存';b.className='save-btn'}
 
-document.getElementById('noteTitle').oninput = resetSaveBtn;
-document.getElementById('noteContent').oninput = () => {
-  updateCount(); resetSaveBtn();
-  if (viewMode === 'preview' || viewMode === 'split') updatePreview();
+document.getElementById('noteTitle').oninput=resetSaveBtn;
+document.getElementById('noteContent').oninput=()=>{
+  updateCount();resetSaveBtn();
+  if(viewMode==='preview'||viewMode==='split') updatePreview();
 };
 
-async function saveNote() {
-  const n = notes.find(x => x.id === currentId);
-  if (!n) return;
-  n.title = document.getElementById('noteTitle').value || '无标题';
-  n.content = document.getElementById('noteContent').value;
-  n.category = document.getElementById('catSelect').value;
-  n.updated_at = new Date().toISOString();
-  const isNew = !n._saved;
-  const method = isNew ? 'POST' : 'PATCH';
-  const url = isNew ? API : API + '?id=eq.' + n.id;
-  const body = isNew
-    ? { title: n.title, content: n.content, category: n.category, tags: n.tags }
-    : { title: n.title, content: n.content, category: n.category, tags: n.tags, updated_at: n.updated_at };
-  const r = await fetch(url, { method, headers: { ...HEADERS, 'Prefer': 'return=representation' }, body: JSON.stringify(body) });
-  const result = await r.json();
-  if (isNew && Array.isArray(result) && result[0]) { n.id = result[0].id; }
-  n._saved = true;
-  const b = document.getElementById('saveBtn'); b.textContent = '✓ 已保存'; b.className = 'save-btn saved';
-  toast('保存成功'); renderAll();
+async function saveNote(){
+  const n=notes.find(x=>x.id===currentId);
+  if(!n)return;
+  n.title=document.getElementById('noteTitle').value||'无标题';
+  n.content=document.getElementById('noteContent').value;
+  n.category=document.getElementById('catSelect').value;
+  n.updated_at=new Date().toISOString();
+  const isNew=!n._saved;
+  const method=isNew?'POST':'PATCH';
+  const url=isNew?API:API+'?id=eq.'+n.id;
+  const body=isNew
+    ?{title:n.title,content:n.content,category:n.category,tags:n.tags}
+    :{title:n.title,content:n.content,category:n.category,tags:n.tags,updated_at:n.updated_at};
+  const r=await fetch(url,{method,headers:{...HEADERS,'Prefer':'return=representation'},body:JSON.stringify(body)});
+  const result=await r.json();
+  if(isNew&&Array.isArray(result)&&result[0]){n.id=result[0].id;}
+  n._saved=true;
+  const b=document.getElementById('saveBtn');b.textContent='✓ 已保存';b.className='save-btn saved';
+  toast('保存成功');renderAll();
 }
 
-async function deleteNote() {
-  if (!currentId) return;
-  if (!confirm('确定删除这条笔记？')) return;
-  const n = notes.find(x => x.id === currentId);
-  if (n && n._saved) await fetch(API + '?id=eq.' + currentId, { method: 'DELETE', headers: HEADERS });
-  notes = notes.filter(x => x.id !== currentId); currentId = null;
-  document.getElementById('emptyState').style.display = '';
-  document.getElementById('editorContent').style.display = 'none';
-  toast('已删除'); renderAll();
+async function deleteNote(){
+  if(!currentId)return;
+  if(!confirm('确定删除这条笔记？'))return;
+  const n=notes.find(x=>x.id===currentId);
+  if(n&&n._saved)await fetch(API+'?id=eq.'+currentId,{method:'DELETE',headers:HEADERS});
+  notes=notes.filter(x=>x.id!==currentId);currentId=null;
+  document.getElementById('emptyState').style.display='';
+  document.getElementById('editorContent').style.display='none';
+  toast('已删除');renderAll();
 }
 
-// ── 全部删除 ─────────────────────────────────────────────
-document.getElementById('deleteAllBtn').onclick = () => {
-  const count = notes.filter(n => n._saved !== false).length;
-  document.getElementById('deleteAllCount').textContent = `共 ${notes.length} 篇笔记`;
-  document.getElementById('delProgressWrap').style.display = 'none';
-  document.getElementById('delProgressLabel').textContent = '';
-  document.getElementById('deleteAllBtns').style.display = 'flex';
-  openModal('deleteAllModal');
+document.getElementById('newBtn').onclick=()=>{
+  const n={id:'new-'+Date.now(),title:'',content:'',
+    category:currentCat==='全部'?'其他':currentCat,
+    tags:[],updated_at:new Date().toISOString(),_saved:false};
+  notes.unshift(n);renderList();openNote(n.id);
 };
 
-async function confirmDeleteAll() {
-  const toDelete = notes.filter(n => n._saved !== false);
-  if (toDelete.length === 0) { closeModal('deleteAllModal'); toast('没有可删除的笔记'); return; }
+document.getElementById('searchInput').oninput=renderList;
 
-  document.getElementById('deleteAllBtns').style.display = 'none';
-  document.getElementById('delProgressWrap').style.display = 'block';
-
-  let done = 0;
-  for (const n of toDelete) {
-    await fetch(API + '?id=eq.' + n.id, { method: 'DELETE', headers: HEADERS });
-    done++;
-    const pct = Math.round(done / toDelete.length * 100);
-    document.getElementById('delProgressBar').style.width = pct + '%';
-    document.getElementById('delProgressLabel').textContent = `已删除 ${done} / ${toDelete.length}`;
-  }
-
-  notes = []; currentId = null;
-  document.getElementById('emptyState').style.display = '';
-  document.getElementById('editorContent').style.display = 'none';
-  closeModal('deleteAllModal');
-  toast('✓ 全部删除完成');
-  renderAll();
+function ins(pre,suf){
+  const ta=document.getElementById('noteContent');
+  const s=ta.selectionStart,e=ta.selectionEnd;
+  const sel=ta.value.slice(s,e);
+  ta.value=ta.value.slice(0,s)+pre+sel+suf+ta.value.slice(e);
+  ta.selectionStart=s+pre.length;ta.selectionEnd=s+pre.length+sel.length;
+  ta.focus();if(viewMode==='split'||viewMode==='preview')updatePreview();
 }
-
-// ── 删除当前分类 ─────────────────────────────────────────
-function openDeleteCat() {
-  const catNotes = notes.filter(n => n.category === currentCat);
-  document.getElementById('deleteCatName').textContent = '「' + currentCat + '」';
-  document.getElementById('deleteCatCount').textContent = catNotes.length;
-  document.getElementById('catDelProgressWrap').style.display = 'none';
-  document.getElementById('catDelProgressLabel').textContent = '';
-  document.getElementById('deleteCatBtns').style.display = 'flex';
-  openModal('deleteCatModal');
-}
-
-async function confirmDeleteCat() {
-  const toDelete = notes.filter(n => n.category === currentCat && n._saved !== false);
-  if (toDelete.length === 0) { closeModal('deleteCatModal'); toast('没有可删除的笔记'); return; }
-
-  document.getElementById('deleteCatBtns').style.display = 'none';
-  document.getElementById('catDelProgressWrap').style.display = 'block';
-
-  let done = 0;
-  for (const n of toDelete) {
-    await fetch(API + '?id=eq.' + n.id, { method: 'DELETE', headers: HEADERS });
-    done++;
-    const pct = Math.round(done / toDelete.length * 100);
-    document.getElementById('catDelProgressBar').style.width = pct + '%';
-    document.getElementById('catDelProgressLabel').textContent = `已删除 ${done} / ${toDelete.length}`;
-  }
-
-  // 若当前打开的笔记属于该分类，清空编辑器
-  const deletedIds = toDelete.map(n => n.id);
-  if (deletedIds.includes(currentId)) {
-    currentId = null;
-    document.getElementById('emptyState').style.display = '';
-    document.getElementById('editorContent').style.display = 'none';
-  }
-  const deletedCat = currentCat;
-  notes = notes.filter(n => n.category !== deletedCat || n._saved === false);
-  currentCat = '全部';
-  document.getElementById('listTitle').textContent = '全部';
-  closeModal('deleteCatModal');
-  toast('✓ 已删除「' + deletedCat + '」分类下所有笔记');
-  renderAll();
-}
-
-// ── 批量导入物化复习资料 ─────────────────────────────────
-document.getElementById('importBtn').onclick = () => {
-  document.getElementById('impProgressWrap').style.display = 'none';
-  document.getElementById('impProgressLabel').textContent = '';
-  document.getElementById('importBtns').style.display = 'flex';
-  openModal('importModal');
-};
-
-async function confirmImport() {
-  document.getElementById('importBtns').style.display = 'none';
-  document.getElementById('impProgressWrap').style.display = 'block';
-
-  let done = 0;
-  for (const note of PCHEM_NOTES) {
-    const body = {
-      title: note.title,
-      content: note.content,
-      category: note.category,
-      tags: note.tags,
-      updated_at: new Date().toISOString()
-    };
-    const r = await fetch(API, {
-      method: 'POST',
-      headers: { ...HEADERS, 'Prefer': 'return=representation' },
-      body: JSON.stringify(body)
-    });
-    const result = await r.json();
-    if (Array.isArray(result) && result[0]) {
-      notes.unshift({ ...result[0], _saved: true });
-    }
-    done++;
-    const pct = Math.round(done / PCHEM_NOTES.length * 100);
-    document.getElementById('impProgressBar').style.width = pct + '%';
-    document.getElementById('impProgressLabel').textContent = `已导入 ${done} / ${PCHEM_NOTES.length}：${note.title.slice(0, 18)}...`;
-  }
-
-  closeModal('importModal');
-  toast('✓ 导入完成！共 ' + PCHEM_NOTES.length + ' 篇');
-  currentCat = '物理化学实验';
-  document.getElementById('listTitle').textContent = '物理化学实验';
-  renderAll();
-}
-
-// ── 新建笔记 ─────────────────────────────────────────────
-document.getElementById('newBtn').onclick = () => {
-  const n = {
-    id: 'new-' + Date.now(), title: '', content: '',
-    category: currentCat === '全部' ? '其他' : currentCat,
-    tags: [], updated_at: new Date().toISOString(), _saved: false
-  };
-  notes.unshift(n); renderList(); openNote(n.id);
-};
-
-document.getElementById('searchInput').oninput = renderList;
-
-function ins(pre, suf) {
-  const ta = document.getElementById('noteContent');
-  const s = ta.selectionStart, e = ta.selectionEnd;
-  const sel = ta.value.slice(s, e);
-  ta.value = ta.value.slice(0, s) + pre + sel + suf + ta.value.slice(e);
-  ta.selectionStart = s + pre.length; ta.selectionEnd = s + pre.length + sel.length;
-  ta.focus(); if (viewMode === 'split' || viewMode === 'preview') updatePreview();
-}
-function insLine(pre) {
-  const ta = document.getElementById('noteContent');
-  const s = ta.selectionStart;
-  const start = ta.value.lastIndexOf('\n', s - 1) + 1;
-  ta.value = ta.value.slice(0, start) + pre + ta.value.slice(start);
-  ta.selectionStart = ta.selectionEnd = s + pre.length;
-  ta.focus(); if (viewMode === 'split' || viewMode === 'preview') updatePreview();
+function insLine(pre){
+  const ta=document.getElementById('noteContent');
+  const s=ta.selectionStart;
+  const start=ta.value.lastIndexOf('\n',s-1)+1;
+  ta.value=ta.value.slice(0,start)+pre+ta.value.slice(start);
+  ta.selectionStart=ta.selectionEnd=s+pre.length;
+  ta.focus();if(viewMode==='split'||viewMode==='preview')updatePreview();
 }
 
 fetchNotes();
