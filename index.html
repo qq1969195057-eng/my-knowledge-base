@@ -269,6 +269,13 @@ function mdToHtml(md){
     mathInlines.push(formula);
     return 'MATHINLINE' + (mathInlines.length-1) + 'END';
   });
+  // 处理表格（在转义之前处理，保持原始字符）
+  let tableBlocks = [];
+  md = md.replace(/^(\|.+\|\s*\n)(\|[-:| ]+\|\s*\n)((?:\|.+\|\s*\n?)*)/gm, function(match) {
+    tableBlocks.push(match);
+    return 'TABLEBLOCK' + (tableBlocks.length-1) + 'END\n';
+  });
+
   let h = md
     // 转义
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
@@ -304,6 +311,25 @@ function mdToHtml(md){
   h = h.replace(/((?:<li>.*?<\/li>\s*)+)/g, '<ul>$1</ul>');
 
   h = '<p>' + h + '</p>';
+  // 恢复表格
+  h = h.replace(/TABLEBLOCK(\d+)END/g, function(m, i) {
+    var lines = tableBlocks[parseInt(i)].trim().split('\n').filter(l => l.trim());
+    var result = '<table>';
+    var isHeader = true;
+    for (var li = 0; li < lines.length; li++) {
+      var line = lines[li].trim();
+      if (!line || /^\|[-:| ]+\|$/.test(line)) { isHeader = false; continue; }
+      var cells = line.split('|').slice(1,-1);
+      if (isHeader) {
+        result += '<thead><tr>' + cells.map(c => '<th>' + c.trim() + '</th>').join('') + '</tr></thead>';
+        isHeader = false;
+      } else {
+        result += '<tr>' + cells.map(c => '<td>' + c.trim() + '</td>').join('') + '</tr>';
+      }
+    }
+    result += '</table>';
+    return result;
+  });
   // 恢复块级公式
   h = h.replace(/MATHBLOCK(\d+)END/g, function(m, i) {
     try { return '<div class="math-block">' + katex.renderToString(mathBlocks[i], {displayMode:true, throwOnError:false}) + '</div>'; }
