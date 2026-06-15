@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的知识库</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;background:#f5f5f0;color:#1a1a1a;height:100vh;overflow:hidden}
+.app{display:flex;height:100vh}
+.sidebar{width:220px;min-width:220px;background:#fff;border-right:1px solid #e8e8e4;display:flex;flex-direction:column}
+.sidebar-top{padding:14px 12px 10px;border-bottom:1px solid #e8e8e4}
+.app-title{font-size:15px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.search-box{display:flex;align-items:center;gap:6px;background:#f5f5f0;border:1px solid #e0e0db;border-radius:8px;padding:6px 8px}
+.search-box input{border:none;background:transparent;font-size:13px;color:#1a1a1a;outline:none;width:100%}
+.search-box input::placeholder{color:#aaa}
+.section-label{padding:10px 14px 4px;font-size:11px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:0.06em}
+.cat-list{padding:0 8px;flex:1;overflow-y:auto}
+.cat-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;cursor:pointer;font-size:13px;color:#555;margin-bottom:2px}
+.cat-item:hover{background:#f5f5f0}
+.cat-item.active{background:#f0eefc;color:#4338ca}
+.cat-count{margin-left:auto;font-size:11px;color:#bbb;background:#f0f0ec;padding:1px 7px;border-radius:99px}
+.cat-item.active .cat-count{background:#e0defa;color:#6366f1}
+.new-btn{margin:10px;padding:8px 12px;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit;justify-content:center}
+.new-btn:hover{background:#4338ca}
+.note-list{width:230px;min-width:230px;background:#fafaf8;border-right:1px solid #e8e8e4;display:flex;flex-direction:column}
+.list-header{padding:10px 14px;font-size:13px;font-weight:500;border-bottom:1px solid #e8e8e4;display:flex;align-items:center;justify-content:space-between;color:#555}
+.note-items{flex:1;overflow-y:auto}
+.note-item{padding:10px 14px;border-bottom:1px solid #f0f0ec;cursor:pointer}
+.note-item:hover,.note-item.active{background:#f0eefc}
+.note-title{font-size:13px;font-weight:500;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#1a1a1a}
+.note-preview{font-size:12px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px}
+.note-meta{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.tag{font-size:10px;padding:2px 6px;border-radius:99px;background:#ede9fe;color:#4338ca}
+.note-date{font-size:10px;color:#bbb;margin-left:auto}
+.editor{flex:1;display:flex;flex-direction:column;background:#fff}
+.toolbar{padding:8px 16px;border-bottom:1px solid #e8e8e4;display:flex;align-items:center;gap:6px}
+.tb-btn{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;background:transparent;font-size:12px;cursor:pointer;color:#555;font-family:inherit}
+.tb-btn:hover{background:#f5f5f0}
+select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;background:#fff;font-size:12px;color:#555;font-family:inherit;cursor:pointer}
+.editor-title{padding:16px 20px 8px;font-size:22px;font-weight:600;border:none;outline:none;background:transparent;color:#1a1a1a;font-family:inherit;width:100%}
+.editor-tags{padding:4px 20px 8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;border-bottom:1px solid #f0f0ec}
+.etag{font-size:12px;padding:3px 10px;border-radius:99px;background:#ede9fe;color:#4338ca;display:flex;align-items:center;gap:4px}
+.etag-rm{cursor:pointer;opacity:0.5;font-size:14px;line-height:1}
+.etag-rm:hover{opacity:1}
+.tag-input{font-size:13px;border:none;outline:none;background:transparent;color:#888;min-width:100px;font-family:inherit}
+.tag-input::placeholder{color:#ccc}
+.editor-body{flex:1;padding:12px 20px;overflow-y:auto}
+.editor-body textarea{width:100%;height:100%;border:none;outline:none;resize:none;font-size:14px;line-height:1.9;color:#1a1a1a;background:transparent;font-family:inherit}
+.editor-footer{padding:8px 20px;border-top:1px solid #e8e8e4;display:flex;align-items:center;justify-content:space-between}
+.word-count{font-size:12px;color:#bbb}
+.footer-btns{display:flex;gap:8px}
+.del-btn{padding:5px 12px;border:1px solid #fca5a5;border-radius:7px;background:transparent;color:#ef4444;font-size:13px;cursor:pointer;font-family:inherit}
+.del-btn:hover{background:#fef2f2}
+.save-btn{padding:5px 16px;background:#4f46e5;color:#fff;border:none;border-radius:7px;font-size:13px;cursor:pointer;font-family:inherit}
+.save-btn:hover{background:#4338ca}
+.save-btn.saved{background:#10b981}
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#ccc;gap:10px;font-size:14px}
+.empty svg{width:40px;height:40px;opacity:0.3}
+.loading{text-align:center;padding:20px;color:#bbb;font-size:13px}
+.toast{position:fixed;bottom:20px;right:20px;background:#1a1a1a;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:100}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-top">
+      <div class="app-title">📚 我的知识库</div>
+      <div class="search-box">
+        <svg width="14" height="14" fill="none" stroke="#aaa" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" placeholder="搜索笔记..." id="searchInput">
+      </div>
+    </div>
+    <div class="section-label">分类</div>
+    <div class="cat-list" id="catList"></div>
+    <button class="new-btn" id="newBtn">＋ 新建笔记</button>
+  </div>
+  <div class="note-list">
+    <div class="list-header"><span id="listTitle">全部笔记</span><span id="listCount" style="font-size:12px;color:#bbb"></span></div>
+    <div class="note-items" id="noteItems"></div>
+  </div>
+  <div class="editor" id="editor">
+    <div id="emptyState" class="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      选择笔记或新建一篇
+    </div>
+    <div id="editorContent" style="display:none;flex:1;display:none;flex-direction:column">
+      <div class="toolbar">
+        <button class="tb-btn" onclick="ins('**','**')"><b>B</b></button>
+        <button class="tb-btn" onclick="ins('*','*')"><i>I</i></button>
+        <button class="tb-btn" onclick="insLine('## ')">H2</button>
+        <button class="tb-btn" onclick="insLine('### ')">H3</button>
+        <button class="tb-btn" onclick="insLine('- ')">列表</button>
+        <button class="tb-btn" onclick="insLine('> ')">引用</button>
+        <button class="tb-btn" onclick="ins('`','`')">代码</button>
+        <span style="flex:1"></span>
+        <select class="tb-select" id="catSelect">
+          <option value="">选择分类</option>
+          <option>编程</option><option>数学</option><option>英语</option>
+          <option>读书笔记</option><option>其他</option>
+        </select>
+      </div>
+      <input class="editor-title" id="noteTitle" placeholder="笔记标题...">
+      <div class="editor-tags" id="editorTags"></div>
+      <div class="editor-body"><textarea id="noteContent" placeholder="开始记录你的想法..."></textarea></div>
+      <div class="editor-footer">
+        <span class="word-count" id="wordCount">0 字</span>
+        <div class="footer-btns">
+          <button class="del-btn" onclick="deleteNote()">删除</button>
+          <button class="save-btn" id="saveBtn" onclick="saveNote()">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://jcxxifymtgxcaxmggubi.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_K4BcxTkYldQ_0Pn2dtgRcQ_10_U9yEg';
+const API = SUPABASE_URL + '/rest/v1/notes';
+const HEADERS = {'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
+
+let notes=[], currentId=null, currentCat='全部';
+
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
+async function fetchNotes(){
+  document.getElementById('noteItems').innerHTML='<div class="loading">加载中...</div>';
+  const r=await fetch(API+'?order=updated_at.desc',{headers:{...HEADERS,'Prefer':'return=representation'}});
+  notes=await r.json();
+  renderAll();
+}
+
+function cats(){const c=['全部'];notes.forEach(n=>{if(n.category&&!c.includes(n.category))c.push(n.category)});return c}
+function catCount(c){return c==='全部'?notes.length:notes.filter(n=>n.category===c).length}
+
+function renderAll(){renderCats();renderList()}
+
+function renderCats(){
+  document.getElementById('catList').innerHTML=cats().map(c=>`
+    <div class="cat-item${c===currentCat?' active':''}" onclick="selectCat('${c}')">
+      ${c==='全部'?'📋':c==='编程'?'💻':c==='数学'?'📐':c==='英语'?'🌐':c==='读书笔记'?'📖':'📁'} ${c}
+      <span class="cat-count">${catCount(c)}</span>
+    </div>`).join('');
+}
+
+function selectCat(c){currentCat=c;document.getElementById('listTitle').textContent=c;renderCats();renderList()}
+
+function filtered(){return currentCat==='全部'?notes:notes.filter(n=>n.category===currentCat)}
+
+function renderList(){
+  const q=document.getElementById('searchInput').value.trim().toLowerCase();
+  let list=filtered();
+  if(q)list=list.filter(n=>(n.title||'').toLowerCase().includes(q)||(n.content||'').toLowerCase().includes(q)||((n.tags||[]).join(' ')).toLowerCase().includes(q));
+  document.getElementById('listCount').textContent=list.length+'篇';
+  document.getElementById('noteItems').innerHTML=list.length?list.map(n=>`
+    <div class="note-item${n.id===currentId?' active':''}" onclick="openNote('${n.id}')">
+      <div class="note-title">${n.title||'无标题'}</div>
+      <div class="note-preview">${(n.content||'').replace(/[#\->`*]/g,'').slice(0,50)}</div>
+      <div class="note-meta">
+        ${(n.tags||[]).slice(0,3).map(t=>`<span class="tag">${t}</span>`).join('')}
+        <span class="note-date">${(n.updated_at||'').slice(0,10)}</span>
+      </div>
+    </div>`).join(''):'<div class="loading">暂无笔记</div>';
+}
+
+function openNote(id){
+  currentId=id;
+  const n=notes.find(x=>x.id===id);
+  if(!n)return;
+  document.getElementById('emptyState').style.display='none';
+  const ec=document.getElementById('editorContent');
+  ec.style.display='flex';ec.style.flexDirection='column';
+  document.getElementById('noteTitle').value=n.title||'';
+  document.getElementById('noteContent').value=n.content||'';
+  document.getElementById('catSelect').value=n.category||'';
+  renderEditorTags(n.tags||[]);
+  updateCount();
+  resetSaveBtn();
+  renderList();
+}
+
+function renderEditorTags(tags){
+  document.getElementById('editorTags').innerHTML=
+    tags.map(t=>`<span class="etag">${t}<span class="etag-rm" onclick="removeTag('${t}')">×</span></span>`).join('')+
+    `<input class="tag-input" placeholder="+ 添加标签" id="tagInput" onkeydown="addTag(event)">`;
+}
+
+function removeTag(t){const n=notes.find(x=>x.id===currentId);if(!n)return;n.tags=(n.tags||[]).filter(x=>x!==t);renderEditorTags(n.tags)}
+function addTag(e){
+  if(e.key!=='Enter')return;
+  const v=e.target.value.trim();
+  if(!v)return;
+  const n=notes.find(x=>x.id===currentId);
+  if(n){n.tags=n.tags||[];if(!n.tags.includes(v))n.tags.push(v);renderEditorTags(n.tags)}
+  e.target.value='';
+}
+
+function updateCount(){document.getElementById('wordCount').textContent=(document.getElementById('noteContent').value||'').length+' 字'}
+function resetSaveBtn(){const b=document.getElementById('saveBtn');b.textContent='保存';b.className='save-btn'}
+
+document.getElementById('noteTitle').oninput=resetSaveBtn;
+document.getElementById('noteContent').oninput=()=>{updateCount();resetSaveBtn()};
+
+async function saveNote(){
+  const n=notes.find(x=>x.id===currentId);
+  if(!n)return;
+  n.title=document.getElementById('noteTitle').value||'无标题';
+  n.content=document.getElementById('noteContent').value;
+  n.category=document.getElementById('catSelect').value;
+  n.updated_at=new Date().toISOString();
+  const isNew=!n._saved;
+  const method=isNew?'POST':'PATCH';
+  const url=isNew?API:API+'?id=eq.'+n.id;
+  await fetch(url,{method,headers:{...HEADERS,'Prefer':'return=representation'},body:JSON.stringify(isNew?{title:n.title,content:n.content,category:n.category,tags:n.tags}:{title:n.title,content:n.content,category:n.category,tags:n.tags,updated_at:n.updated_at})});
+  n._saved=true;
+  const b=document.getElementById('saveBtn');b.textContent='✓ 已保存';b.className='save-btn saved';
+  toast('保存成功');
+  renderAll();
+}
+
+async function deleteNote(){
+  if(!currentId)return;
+  const n=notes.find(x=>x.id===currentId);
+  if(n&&n._saved)await fetch(API+'?id=eq.'+currentId,{method:'DELETE',headers:HEADERS});
+  notes=notes.filter(x=>x.id!==currentId);
+  currentId=null;
+  document.getElementById('emptyState').style.display='';
+  document.getElementById('editorContent').style.display='none';
+  toast('已删除');
+  renderAll();
+}
+
+document.getElementById('newBtn').onclick=()=>{
+  const n={id:'new-'+Date.now(),title:'',content:'',category:currentCat==='全部'?'其他':currentCat,tags:[],updated_at:new Date().toISOString(),_saved:false};
+  notes.unshift(n);
+  renderList();
+  openNote(n.id);
+};
+
+document.getElementById('searchInput').oninput=renderList;
+
+function ins(pre,suf){const ta=document.getElementById('noteContent');const s=ta.selectionStart,e=ta.selectionEnd;const sel=ta.value.slice(s,e);ta.value=ta.value.slice(0,s)+pre+sel+suf+ta.value.slice(e);ta.selectionStart=s+pre.length;ta.selectionEnd=s+pre.length+sel.length;ta.focus()}
+function insLine(pre){const ta=document.getElementById('noteContent');const s=ta.selectionStart;const start=ta.value.lastIndexOf('\n',s-1)+1;ta.value=ta.value.slice(0,start)+pre+ta.value.slice(start);ta.selectionStart=ta.selectionEnd=s+pre.length;ta.focus()}
+
+fetchNotes();
+</script>
+</body>
+</html>
