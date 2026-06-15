@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -34,11 +33,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 .note-meta{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
 .tag{font-size:10px;padding:2px 6px;border-radius:99px;background:#ede9fe;color:#4338ca}
 .note-date{font-size:10px;color:#bbb;margin-left:auto}
-.editor{flex:1;display:flex;flex-direction:column;background:#fff}
-.toolbar{padding:8px 16px;border-bottom:1px solid #e8e8e4;display:flex;align-items:center;gap:6px}
+.editor{flex:1;display:flex;flex-direction:column;background:#fff;min-width:0}
+.toolbar{padding:8px 16px;border-bottom:1px solid #e8e8e4;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
 .tb-btn{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;background:transparent;font-size:12px;cursor:pointer;color:#555;font-family:inherit}
 .tb-btn:hover{background:#f5f5f0}
+.tb-btn.active{background:#ede9fe;border-color:#a5b4fc;color:#4338ca}
 select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;background:#fff;font-size:12px;color:#555;font-family:inherit;cursor:pointer}
+.img-upload-btn{padding:4px 10px;border:1px solid #e8e8e4;border-radius:6px;background:transparent;font-size:12px;cursor:pointer;color:#555;font-family:inherit;display:flex;align-items:center;gap:4px}
+.img-upload-btn:hover{background:#f5f5f0}
+#imgUploadInput{display:none}
 .editor-title{padding:16px 20px 8px;font-size:22px;font-weight:600;border:none;outline:none;background:transparent;color:#1a1a1a;font-family:inherit;width:100%}
 .editor-tags{padding:4px 20px 8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;border-bottom:1px solid #f0f0ec}
 .etag{font-size:12px;padding:3px 10px;border-radius:99px;background:#ede9fe;color:#4338ca;display:flex;align-items:center;gap:4px}
@@ -46,8 +49,32 @@ select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;back
 .etag-rm:hover{opacity:1}
 .tag-input{font-size:13px;border:none;outline:none;background:transparent;color:#888;min-width:100px;font-family:inherit}
 .tag-input::placeholder{color:#ccc}
-.editor-body{flex:1;padding:12px 20px;overflow-y:auto}
-.editor-body textarea{width:100%;height:100%;border:none;outline:none;resize:none;font-size:14px;line-height:1.9;color:#1a1a1a;background:transparent;font-family:inherit}
+.editor-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.edit-pane{flex:1;padding:12px 20px;overflow-y:auto}
+.edit-pane textarea{width:100%;height:100%;min-height:300px;border:none;outline:none;resize:none;font-size:14px;line-height:1.9;color:#1a1a1a;background:transparent;font-family:'Menlo','Monaco','Courier New',monospace}
+.preview-pane{flex:1;padding:16px 24px;overflow-y:auto;display:none;border-left:1px solid #f0f0ec}
+.preview-pane.show{display:block}
+.split-view .edit-pane{flex:1}
+.split-view .preview-pane{display:block;flex:1}
+/* Markdown preview styles */
+.preview-pane h1{font-size:22px;font-weight:700;margin:0 0 12px;color:#1a1a1a;border-bottom:2px solid #e8e8e4;padding-bottom:8px}
+.preview-pane h2{font-size:18px;font-weight:600;margin:20px 0 8px;color:#1a1a1a;border-bottom:1px solid #f0f0ec;padding-bottom:4px}
+.preview-pane h3{font-size:15px;font-weight:600;margin:16px 0 6px;color:#333}
+.preview-pane p{margin:0 0 10px;line-height:1.8;color:#333}
+.preview-pane ul,.preview-pane ol{margin:0 0 10px 20px;line-height:1.8;color:#333}
+.preview-pane li{margin-bottom:3px}
+.preview-pane blockquote{border-left:3px solid #a5b4fc;padding:6px 12px;margin:10px 0;background:#f9f9ff;color:#555;border-radius:0 6px 6px 0}
+.preview-pane code{background:#f0f0ec;padding:1px 5px;border-radius:4px;font-family:monospace;font-size:13px;color:#d63384}
+.preview-pane pre{background:#f5f5f0;padding:12px;border-radius:8px;overflow-x:auto;margin:10px 0}
+.preview-pane pre code{background:none;padding:0;color:#1a1a1a}
+.preview-pane img{max-width:100%;border-radius:8px;margin:8px 0;box-shadow:0 2px 8px rgba(0,0,0,0.1);display:block}
+.preview-pane strong{font-weight:600;color:#1a1a1a}
+.preview-pane em{font-style:italic;color:#555}
+.preview-pane hr{border:none;border-top:1px solid #e8e8e4;margin:16px 0}
+.preview-pane table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
+.preview-pane th{background:#f0eefc;padding:7px 10px;text-align:left;font-weight:600;border:1px solid #e0defa}
+.preview-pane td{padding:6px 10px;border:1px solid #e8e8e4}
+.preview-pane tr:nth-child(even){background:#f9f9ff}
 .editor-footer{padding:8px 20px;border-top:1px solid #e8e8e4;display:flex;align-items:center;justify-content:space-between}
 .word-count{font-size:12px;color:#bbb}
 .footer-btns{display:flex;gap:8px}
@@ -61,6 +88,7 @@ select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;back
 .loading{text-align:center;padding:20px;color:#bbb;font-size:13px}
 .toast{position:fixed;bottom:20px;right:20px;background:#1a1a1a;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:100}
 .toast.show{opacity:1}
+.upload-progress{font-size:11px;color:#6366f1;padding:2px 6px}
 </style>
 </head>
 <body>
@@ -86,7 +114,7 @@ select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;back
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
       选择笔记或新建一篇
     </div>
-    <div id="editorContent" style="display:none;flex:1;display:none;flex-direction:column">
+    <div id="editorContent" style="display:none;flex:1;flex-direction:column">
       <div class="toolbar">
         <button class="tb-btn" onclick="ins('**','**')"><b>B</b></button>
         <button class="tb-btn" onclick="ins('*','*')"><i>I</i></button>
@@ -94,17 +122,37 @@ select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;back
         <button class="tb-btn" onclick="insLine('### ')">H3</button>
         <button class="tb-btn" onclick="insLine('- ')">列表</button>
         <button class="tb-btn" onclick="insLine('> ')">引用</button>
-        <button class="tb-btn" onclick="ins('`','`')">代码</button>
+        <button class="tb-btn" onclick="ins('\`','\`')">代码</button>
+        <button class="tb-btn" onclick="insLine('---')">分割线</button>
+        <label class="img-upload-btn" title="插入图片">
+          🖼 图片
+          <input type="file" id="imgUploadInput" accept="image/*" onchange="uploadImage(this)">
+        </label>
+        <span id="uploadProgress" class="upload-progress"></span>
         <span style="flex:1"></span>
+        <button class="tb-btn" id="previewBtn" onclick="togglePreview()">👁 预览</button>
+        <button class="tb-btn" id="splitBtn" onclick="toggleSplit()">⬛ 分屏</button>
         <select class="tb-select" id="catSelect">
           <option value="">选择分类</option>
-          <option>编程</option><option>数学</option><option>英语</option>
-          <option>读书笔记</option><option>其他</option>
+          <option>有机化学</option>
+          <option>无机化学</option>
+          <option>分析化学</option>
+          <option>物理化学</option>
+          <option>编程</option>
+          <option>数学</option>
+          <option>英语</option>
+          <option>读书笔记</option>
+          <option>其他</option>
         </select>
       </div>
       <input class="editor-title" id="noteTitle" placeholder="笔记标题...">
       <div class="editor-tags" id="editorTags"></div>
-      <div class="editor-body"><textarea id="noteContent" placeholder="开始记录你的想法..."></textarea></div>
+      <div class="editor-area" id="editorArea">
+        <div class="edit-pane" id="editPane">
+          <textarea id="noteContent" placeholder="开始记录你的想法...\n\n支持 Markdown 格式：\n## 标题\n**粗体** *斜体*\n- 列表项\n> 引用\n\n图片：点击工具栏「🖼 图片」上传"></textarea>
+        </div>
+        <div class="preview-pane" id="previewPane"></div>
+      </div>
       <div class="editor-footer">
         <span class="word-count" id="wordCount">0 字</span>
         <div class="footer-btns">
@@ -121,28 +169,207 @@ select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;back
 const SUPABASE_URL = 'https://jcxxifymtgxcaxmggubi.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_K4BcxTkYldQ_0Pn2dtgRcQ_10_U9yEg';
 const API = SUPABASE_URL + '/rest/v1/notes';
+const STORAGE_API = SUPABASE_URL + '/storage/v1/object';
 const HEADERS = {'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
 
-let notes=[], currentId=null, currentCat='全部';
+let notes=[], currentId=null, currentCat='全部', viewMode='edit';
 
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+function toast(msg,dur){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur||2000)}
 
+// ── 图片上传 ────────────────────────────────────────────
+async function uploadImage(input){
+  const file = input.files[0];
+  if(!file) return;
+  const prog = document.getElementById('uploadProgress');
+  prog.textContent = '上传中...';
+
+  // 先尝试上传到 Supabase Storage
+  const fileName = Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  const bucket = 'note-images';
+
+  try {
+    const r = await fetch(STORAGE_API + '/' + bucket + '/' + fileName, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': file.type,
+        'x-upsert': 'true'
+      },
+      body: file
+    });
+
+    if(r.ok){
+      const publicUrl = SUPABASE_URL + '/storage/v1/object/public/' + bucket + '/' + fileName;
+      insertImageMd(publicUrl, file.name);
+      prog.textContent = '✓ 上传成功';
+      setTimeout(()=>prog.textContent='', 2000);
+    } else {
+      // Storage bucket不存在，改用Base64嵌入
+      await insertBase64(file);
+      prog.textContent = '✓ 已嵌入（Base64）';
+      setTimeout(()=>prog.textContent='', 2000);
+    }
+  } catch(e) {
+    // 网络失败也用Base64
+    await insertBase64(file);
+    prog.textContent = '✓ 已嵌入';
+    setTimeout(()=>prog.textContent='', 2000);
+  }
+  input.value = '';
+}
+
+function insertImageMd(url, name){
+  const ta = document.getElementById('noteContent');
+  const md = '\n![' + (name||'图片') + '](' + url + ')\n';
+  const s = ta.selectionStart;
+  ta.value = ta.value.slice(0,s) + md + ta.value.slice(s);
+  ta.selectionStart = ta.selectionEnd = s + md.length;
+  ta.focus();
+  updatePreview();
+  resetSaveBtn();
+}
+
+function insertBase64(file){
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const md = '\n![' + file.name + '](' + e.target.result + ')\n';
+      const ta = document.getElementById('noteContent');
+      const s = ta.selectionStart;
+      ta.value = ta.value.slice(0,s) + md + ta.value.slice(s);
+      ta.selectionStart = ta.selectionEnd = s + md.length;
+      ta.focus();
+      updatePreview();
+      resetSaveBtn();
+      resolve();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ── Markdown 渲染 ──────────────────────────────────────
+function mdToHtml(md){
+  let h = md
+    // 转义
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    // 先保护代码块
+    .replace(/```([\s\S]*?)```/g, (m,c) => '<pre><code>' + c.trim() + '</code></pre>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    // 图片（必须在链接之前）
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">')
+    // 链接
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+    // 标题
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    // 粗体斜体
+    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    // 分割线
+    .replace(/^---+$/gm, '<hr>')
+    // 引用
+    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+    // 有序列表
+    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+    // 无序列表
+    .replace(/^[-*] (.+)$/gm, '<li>$1</li>')
+    // 换行
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>');
+
+  // 包裹列表
+  h = h.replace(/(<li>.*?<\/li>)(\s*<li>)/gs, '$1$2');
+  h = h.replace(/((?:<li>.*?<\/li>\s*)+)/g, '<ul>$1</ul>');
+
+  return '<p>' + h + '</p>';
+}
+
+function updatePreview(){
+  const md = document.getElementById('noteContent').value;
+  document.getElementById('previewPane').innerHTML = mdToHtml(md);
+}
+
+function togglePreview(){
+  const pp = document.getElementById('previewPane');
+  const ep = document.getElementById('editPane');
+  const btn = document.getElementById('previewBtn');
+  const sb = document.getElementById('splitBtn');
+  if(viewMode === 'preview'){
+    viewMode = 'edit';
+    pp.classList.remove('show'); pp.style.display='none';
+    ep.style.display='block';
+    btn.classList.remove('active'); btn.textContent='👁 预览';
+    document.getElementById('editorArea').classList.remove('split-view');
+    sb.style.display='';
+  } else {
+    viewMode = 'preview';
+    updatePreview();
+    ep.style.display='none';
+    pp.classList.add('show'); pp.style.display='block';
+    btn.classList.add('active'); btn.textContent='✏ 编辑';
+    document.getElementById('editorArea').classList.remove('split-view');
+    sb.style.display='none';
+  }
+}
+
+function toggleSplit(){
+  const area = document.getElementById('editorArea');
+  const pp = document.getElementById('previewPane');
+  const ep = document.getElementById('editPane');
+  const btn = document.getElementById('splitBtn');
+  const pb = document.getElementById('previewBtn');
+  if(viewMode === 'split'){
+    viewMode = 'edit';
+    area.classList.remove('split-view');
+    area.style.display='flex'; area.style.flexDirection='column';
+    ep.style.display='block'; ep.style.flex='1';
+    pp.classList.remove('show'); pp.style.display='none';
+    btn.classList.remove('active'); btn.textContent='⬛ 分屏';
+    pb.style.display='';
+  } else {
+    viewMode = 'split';
+    updatePreview();
+    area.classList.add('split-view');
+    area.style.display='flex'; area.style.flexDirection='row';
+    ep.style.display='block'; ep.style.flex='1';
+    pp.classList.add('show'); pp.style.display='block'; pp.style.flex='1';
+    btn.classList.add('active'); btn.textContent='⬛ 退出分屏';
+    pb.style.display='none';
+  }
+}
+
+// ── 数据操作 ────────────────────────────────────────────
 async function fetchNotes(){
   document.getElementById('noteItems').innerHTML='<div class="loading">加载中...</div>';
   const r=await fetch(API+'?order=updated_at.desc',{headers:{...HEADERS,'Prefer':'return=representation'}});
   notes=await r.json();
+  if(!Array.isArray(notes)) notes=[];
   renderAll();
 }
 
-function cats(){const c=['全部'];notes.forEach(n=>{if(n.category&&!c.includes(n.category))c.push(n.category)});return c}
+const CAT_ICONS = {
+  '全部':'📋','有机化学':'⚗️','无机化学':'🧪','分析化学':'🔬',
+  '物理化学':'⚡','编程':'💻','数学':'📐','英语':'🌐',
+  '读书笔记':'📖','其他':'📁'
+};
+
+function cats(){
+  const c=['全部'];
+  notes.forEach(n=>{if(n.category&&!c.includes(n.category))c.push(n.category)});
+  return c;
+}
 function catCount(c){return c==='全部'?notes.length:notes.filter(n=>n.category===c).length}
+function catIcon(c){return CAT_ICONS[c]||'📁'}
 
 function renderAll(){renderCats();renderList()}
 
 function renderCats(){
   document.getElementById('catList').innerHTML=cats().map(c=>`
     <div class="cat-item${c===currentCat?' active':''}" onclick="selectCat('${c}')">
-      ${c==='全部'?'📋':c==='编程'?'💻':c==='数学'?'📐':c==='英语'?'🌐':c==='读书笔记'?'📖':'📁'} ${c}
+      ${catIcon(c)} ${c}
       <span class="cat-count">${catCount(c)}</span>
     </div>`).join('');
 }
@@ -159,7 +386,7 @@ function renderList(){
   document.getElementById('noteItems').innerHTML=list.length?list.map(n=>`
     <div class="note-item${n.id===currentId?' active':''}" onclick="openNote('${n.id}')">
       <div class="note-title">${n.title||'无标题'}</div>
-      <div class="note-preview">${(n.content||'').replace(/[#\->`*]/g,'').slice(0,50)}</div>
+      <div class="note-preview">${(n.content||'').replace(/!\[.*?\]\(data:.*?\)/g,'[图片]').replace(/[#\->`*!]/g,'').slice(0,50)}</div>
       <div class="note-meta">
         ${(n.tags||[]).slice(0,3).map(t=>`<span class="tag">${t}</span>`).join('')}
         <span class="note-date">${(n.updated_at||'').slice(0,10)}</span>
@@ -173,13 +400,14 @@ function openNote(id){
   if(!n)return;
   document.getElementById('emptyState').style.display='none';
   const ec=document.getElementById('editorContent');
-  ec.style.display='flex';ec.style.flexDirection='column';
+  ec.style.display='flex'; ec.style.flexDirection='column';
   document.getElementById('noteTitle').value=n.title||'';
   document.getElementById('noteContent').value=n.content||'';
   document.getElementById('catSelect').value=n.category||'';
   renderEditorTags(n.tags||[]);
   updateCount();
   resetSaveBtn();
+  if(viewMode==='preview'||viewMode==='split') updatePreview();
   renderList();
 }
 
@@ -192,8 +420,7 @@ function renderEditorTags(tags){
 function removeTag(t){const n=notes.find(x=>x.id===currentId);if(!n)return;n.tags=(n.tags||[]).filter(x=>x!==t);renderEditorTags(n.tags)}
 function addTag(e){
   if(e.key!=='Enter')return;
-  const v=e.target.value.trim();
-  if(!v)return;
+  const v=e.target.value.trim();if(!v)return;
   const n=notes.find(x=>x.id===currentId);
   if(n){n.tags=n.tags||[];if(!n.tags.includes(v))n.tags.push(v);renderEditorTags(n.tags)}
   e.target.value='';
@@ -203,7 +430,10 @@ function updateCount(){document.getElementById('wordCount').textContent=(documen
 function resetSaveBtn(){const b=document.getElementById('saveBtn');b.textContent='保存';b.className='save-btn'}
 
 document.getElementById('noteTitle').oninput=resetSaveBtn;
-document.getElementById('noteContent').oninput=()=>{updateCount();resetSaveBtn()};
+document.getElementById('noteContent').oninput=()=>{
+  updateCount();resetSaveBtn();
+  if(viewMode==='preview'||viewMode==='split') updatePreview();
+};
 
 async function saveNote(){
   const n=notes.find(x=>x.id===currentId);
@@ -215,36 +445,53 @@ async function saveNote(){
   const isNew=!n._saved;
   const method=isNew?'POST':'PATCH';
   const url=isNew?API:API+'?id=eq.'+n.id;
-  await fetch(url,{method,headers:{...HEADERS,'Prefer':'return=representation'},body:JSON.stringify(isNew?{title:n.title,content:n.content,category:n.category,tags:n.tags}:{title:n.title,content:n.content,category:n.category,tags:n.tags,updated_at:n.updated_at})});
+  const body=isNew
+    ?{title:n.title,content:n.content,category:n.category,tags:n.tags}
+    :{title:n.title,content:n.content,category:n.category,tags:n.tags,updated_at:n.updated_at};
+  const r=await fetch(url,{method,headers:{...HEADERS,'Prefer':'return=representation'},body:JSON.stringify(body)});
+  const result=await r.json();
+  if(isNew&&Array.isArray(result)&&result[0]){n.id=result[0].id;}
   n._saved=true;
   const b=document.getElementById('saveBtn');b.textContent='✓ 已保存';b.className='save-btn saved';
-  toast('保存成功');
-  renderAll();
+  toast('保存成功');renderAll();
 }
 
 async function deleteNote(){
   if(!currentId)return;
+  if(!confirm('确定删除这条笔记？'))return;
   const n=notes.find(x=>x.id===currentId);
   if(n&&n._saved)await fetch(API+'?id=eq.'+currentId,{method:'DELETE',headers:HEADERS});
-  notes=notes.filter(x=>x.id!==currentId);
-  currentId=null;
+  notes=notes.filter(x=>x.id!==currentId);currentId=null;
   document.getElementById('emptyState').style.display='';
   document.getElementById('editorContent').style.display='none';
-  toast('已删除');
-  renderAll();
+  toast('已删除');renderAll();
 }
 
 document.getElementById('newBtn').onclick=()=>{
-  const n={id:'new-'+Date.now(),title:'',content:'',category:currentCat==='全部'?'其他':currentCat,tags:[],updated_at:new Date().toISOString(),_saved:false};
-  notes.unshift(n);
-  renderList();
-  openNote(n.id);
+  const n={id:'new-'+Date.now(),title:'',content:'',
+    category:currentCat==='全部'?'其他':currentCat,
+    tags:[],updated_at:new Date().toISOString(),_saved:false};
+  notes.unshift(n);renderList();openNote(n.id);
 };
 
 document.getElementById('searchInput').oninput=renderList;
 
-function ins(pre,suf){const ta=document.getElementById('noteContent');const s=ta.selectionStart,e=ta.selectionEnd;const sel=ta.value.slice(s,e);ta.value=ta.value.slice(0,s)+pre+sel+suf+ta.value.slice(e);ta.selectionStart=s+pre.length;ta.selectionEnd=s+pre.length+sel.length;ta.focus()}
-function insLine(pre){const ta=document.getElementById('noteContent');const s=ta.selectionStart;const start=ta.value.lastIndexOf('\n',s-1)+1;ta.value=ta.value.slice(0,start)+pre+ta.value.slice(start);ta.selectionStart=ta.selectionEnd=s+pre.length;ta.focus()}
+function ins(pre,suf){
+  const ta=document.getElementById('noteContent');
+  const s=ta.selectionStart,e=ta.selectionEnd;
+  const sel=ta.value.slice(s,e);
+  ta.value=ta.value.slice(0,s)+pre+sel+suf+ta.value.slice(e);
+  ta.selectionStart=s+pre.length;ta.selectionEnd=s+pre.length+sel.length;
+  ta.focus();if(viewMode==='split'||viewMode==='preview')updatePreview();
+}
+function insLine(pre){
+  const ta=document.getElementById('noteContent');
+  const s=ta.selectionStart;
+  const start=ta.value.lastIndexOf('\n',s-1)+1;
+  ta.value=ta.value.slice(0,start)+pre+ta.value.slice(start);
+  ta.selectionStart=ta.selectionEnd=s+pre.length;
+  ta.focus();if(viewMode==='split'||viewMode==='preview')updatePreview();
+}
 
 fetchNotes();
 </script>
