@@ -13,610 +13,518 @@
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;background:#f5f5f0;color:#1a1a1a;height:100vh;overflow:hidden}
 .app{display:flex;height:100vh}
 .sidebar{width:220px;min-width:220px;background:#fff;border-right:1px solid #e8e8e4;display:flex;flex-direction:column}
-.sidebar-top{padding:14px;border-bottom:1px solid #e8e8e4}
-.search-wrapper{position:relative;margin-bottom:12px}
-.search-wrapper input{width:100%;padding:6px 28px 6px 8px;border:1px solid #dcdcc6;border-radius:4px;background:#fcfcfc;font-size:12px;outline:none}
-.search-wrapper input:focus{border-color:#a3a375}
-.search-wrapper .clear-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:14px;color:#999;cursor:pointer;display:none}
-.btn{display:block;width:100%;padding:8px;background:#a3a375;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px;font-weight:bold;text-align:center;text-decoration:none;transition:background 0.2s}
-.btn:hover{background:#8c8c5e}
-.cat-manager-toggle{display:block;text-align:center;font-size:11px;color:#7a7a52;text-decoration:none;margin-top:6px}
-.cat-manager-toggle:hover{text-decoration:underline}
-.cat-list{padding:8px 0;border-bottom:1px solid #e8e8e4;max-height:160px;overflow-y:auto}
-.cat-item{padding:6px 14px;cursor:pointer;display:flex;justify-content:between;align-items:center;font-size:12px;color:#555}
-.cat-item:hover{background:#f0f0e8}
-.cat-item.active{background:#e4e4d4;color:#1a1a1a;font-weight:bold}
-.cat-count{font-size:10px;color:#999;background:#e8e8e4;padding:1px 5px;border-radius:10px}
-.note-list-wrapper{flex:1;overflow-y:auto}
-.note-item{padding:12px 14px;border-bottom:1px solid #f0f0e8;cursor:pointer;position:relative;transition:background 0.2s}
-.note-item:hover{background:#fafaf8}
-.note-item.active{background:#f4f4ec;border-left:3px solid #a3a375}
-.note-title{font-weight:bold;font-size:13px;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.note-meta{font-size:11px;color:#8c8c8c;display:flex;gap:8px}
-.note-tags{display:flex;gap:4px;margin-top:4px;overflow:hidden}
-.tag-badge{font-size:10px;background:#e8e8e4;color:#666;padding:1px 4px;border-radius:2px;white-space:nowrap}
-.main{flex:1;display:flex;flex-direction:column;background:#fff}
-.toolbar{padding:10px 14px;border-bottom:1px solid #e8e8e4;display:flex;justify-content:space-between;align-items:center;background:#fafaf8}
-.toolbar-left{display:flex;gap:8px;align-items:center}
-.toolbar-right{display:flex;gap:8px}
-.t-btn{padding:5px 10px;background:#fff;border:1px solid #dcdcc6;border-radius:4px;cursor:pointer;font-size:12px;color:#555}
-.t-btn:hover{background:#f4f4ec;border-color:#a3a375;color:#1a1a1a}
-.t-btn.danger{color:#c00}
-.t-btn.danger:hover{background:#fce8e8;border-color:#c00}
-.tag-input-zone{display:flex;align-items:center;gap:4px;background:#fff;border:1px solid #dcdcc6;border-radius:4px;padding:2px 6px;max-width:300px;overflow-x:auto}
-.tag-input-zone input{border:none;outline:none;font-size:12px;width:60px}
-.editor-layout{flex:1;display:flex;overflow:hidden}
-.edit-pane{flex:1;display:flex;flex-direction:column;border-right:1px solid #e8e8e4;padding:14px;background:#fdfdfb}
-.edit-title-wrapper{margin-bottom:10px;display:flex;gap:10px}
-.edit-title-wrapper input{flex:1;padding:8px;font-size:16px;font-weight:bold;border:1px solid #dcdcc6;border-radius:4px;outline:none}
-.edit-title-wrapper input:focus{border-color:#a3a375}
-.edit-title-wrapper select{padding:8px;border:1px solid #dcdcc6;border-radius:4px;outline:none;font-size:13px}
-.edit-pane textarea{flex:1;width:100%;resize:none;border:1px solid #dcdcc6;border-radius:4px;padding:10px;font-family:Courier,monospace;font-size:13px;line-height:1.5;outline:none}
-.edit-pane textarea:focus{border-color:#a3a375}
-.preview-pane{flex:1;padding:20px;overflow-y:auto;background:#fff;line-height:1.6}
-.preview-pane h1,.preview-pane h2,.preview-pane h3{margin-top:16px;margin-bottom:8px;color:#1a1a1a}
-.preview-pane h1{font-size:20px;border-bottom:1px solid #eee;padding-bottom:4px}
-.preview-pane h2{font-size:16px}
-.preview-pane h3{font-size:14px}
-.preview-pane p{margin-bottom:10px}
-.preview-pane code{background:#f5f5f0;padding:2px 4px;border-radius:3px;font-family:monospace;font-size:12px}
-.preview-pane pre{background:#f5f5f0;padding:10px;border-radius:4px;overflow-x:auto;margin-bottom:10px}
-.preview-pane pre code{background:none;padding:0}
-.preview-pane blockquote{border-left:4px solid #a3a375;padding-left:10px;color:#666;margin-bottom:10px;background:#fafaf8;padding-top:4px;padding-bottom:4px}
-.preview-pane ul,.preview-pane ol{margin-bottom:10px;padding-left:20px}
-.preview-pane table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:13px}
-.preview-pane th,.preview-pane td{border:1px solid #dcdcc6;padding:6px 8px;text-align:left}
-.preview-pane th{background:#f4f4ec;font-weight:bold}
-.preview-pane tr:nth-child(even){background:#fafaf8}
-.empty-state{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#999;font-size:14px;background:#fafaf8}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:6px 16px;border-radius:20px;font-size:12px;z-index:9999;display:none}
-.cat-modal{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.4);display:flex;justify-content:center;align-items:center;z-index:10000;display:none}
-.cat-modal-content{background:#fff;width:320px;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.15);overflow:hidden}
-.cat-modal-header{padding:12px;background:#fafaf8;border-bottom:1px solid #e8e8e4;font-weight:bold;font-size:13px;display:flex;justify-content:space-between}
-.cat-modal-body{padding:12px;max-height:240px;overflow-y:auto}
-.cat-mgr-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f0f0e8}
-.cat-mgr-item span{font-size:12px}
-.cat-mgr-del{color:#c00;cursor:pointer;font-size:12px}
-.cat-modal-footer{padding:10px;border-top:1px solid #e8e8e4;display:flex;gap:6px}
-.cat-modal-footer input{flex:1;padding:5px;border:1px solid #dcdcc6;border-radius:4px;font-size:12px;outline:none}
-/* 化学结构画布样式 */
-.smiles-canvas { display: block; margin: 10px 0; max-width: 100%; background: #fff; border: 1px dashed #e4e4d4; }
+.sidebar-top{padding:14px 12px 10px;border-bottom:1px solid #e8e8e4}
+.app-title{font-size:15px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.search-box{display:flex;align-items:center;gap:6px;background:#f5f5f0;border:1px solid #e0e0db;border-radius:8px;padding:6px 8px}
+.search-box input{border:none;background:transparent;font-size:13px;color:#1a1a1a;outline:none;width:100%}
+.search-box input::placeholder{color:#aaa}
+.section-label{padding:10px 14px 4px;font-size:11px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:0.06em}
+.cat-list{padding:0 8px;flex:1;overflow-y:auto}
+.cat-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;cursor:pointer;font-size:13px;color:#555;margin-bottom:2px;justify-content:space-between}
+.cat-item-left{display:flex;align-items:center;gap:8px;flex:1;overflow:hidden}
+.cat-item-left span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cat-item:hover{background:#f5f5f0}
+.cat-item.active{background:#f0eefc;color:#4338ca}
+.cat-count{margin-left:auto;font-size:11px;color:#bbb;background:#f0f0ec;padding:1px 7px;border-radius:99px;flex-shrink:0}
+.cat-item.active .cat-count{background:#e0defa;color:#6366f1}
+.cat-delete-btn{background:transparent;border:none;cursor:pointer;font-size:14px;padding:2px 5px;border-radius:20px;color:#aaa;opacity:0;transition:all 0.1s;font-weight:bold;line-height:1}
+.cat-item:hover .cat-delete-btn{opacity:0.6}
+.cat-delete-btn:hover{opacity:1 !important;color:#ef4444;background:#fee2e2}
+.new-btn{margin:10px;padding:8px 12px;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit;justify-content:center}
+.new-btn:hover{background:#4338ca}
+.note-list{width:230px;min-width:230px;background:#fafaf8;border-right:1px solid #e8e8e4;display:flex;flex-direction:column}
+.list-header{padding:10px 14px;font-size:13px;font-weight:500;border-bottom:1px solid #e8e8e4;display:flex;align-items:center;justify-content:space-between;color:#555}
+.note-items{flex:1;overflow-y:auto}
+.note-item{padding:10px 14px;border-bottom:1px solid #f0f0ec;cursor:pointer}
+.note-item:hover,.note-item.active{background:#f0eefc}
+.note-title{font-size:13px;font-weight:500;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#1a1a1a}
+.note-preview{font-size:12px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px}
+.note-meta{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.tag{font-size:10px;padding:2px 6px;border-radius:99px;background:#ede9fe;color:#4338ca}
+.note-date{font-size:10px;color:#bbb;margin-left:auto}
+.editor{flex:1;display:flex;flex-direction:column;background:#fff;min-width:0;min-height:0;overflow:hidden}
+.toolbar{padding:8px 16px;border-bottom:1px solid #e8e8e4;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.tb-btn{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;background:transparent;font-size:12px;cursor:pointer;color:#555;font-family:inherit}
+.tb-btn:hover{background:#f5f5f0}
+.tb-btn.active{background:#ede9fe;border-color:#a5b4fc;color:#4338ca}
+select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;background:#fff;font-size:12px;color:#555;font-family:inherit;cursor:pointer}
+.img-upload-btn{padding:4px 10px;border:1px solid #e8e8e4;border-radius:6px;background:transparent;font-size:12px;cursor:pointer;color:#555;font-family:inherit;display:flex;align-items:center;gap:4px}
+.img-upload-btn:hover{background:#f5f5f0}
+#imgUploadInput{display:none}
+/* ── 新增：下载按钮样式（不影响原有样式） ── */
+.download-btn{padding:4px 10px;border:1px solid #e8e8e4;border-radius:6px;background:transparent;font-size:12px;cursor:pointer;color:#555;font-family:inherit;display:flex;align-items:center;gap:4px}
+.download-btn:hover{background:#f5f5f0;color:#4338ca}
+.editor-title{padding:16px 20px 8px;font-size:22px;font-weight:600;border:none;outline:none;background:transparent;color:#1a1a1a;font-family:inherit;width:100%}
+.editor-tags{padding:4px 20px 8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;border-bottom:1px solid #f0f0ec}
+.etag{font-size:12px;padding:3px 10px;border-radius:99px;background:#ede9fe;color:#4338ca;display:flex;align-items:center;gap:4px}
+.etag-rm{cursor:pointer;opacity:0.5;font-size:14px;line-height:1}
+.etag-rm:hover{opacity:1}
+.tag-input{font-size:13px;border:none;outline:none;background:transparent;color:#888;min-width:100px;font-family:inherit}
+.tag-input::placeholder{color:#ccc}
+.editor-area{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+#editorContent{min-height:0;overflow:hidden}
+.edit-pane{flex:1;padding:12px 20px;overflow-y:auto;min-height:0}
+.edit-pane textarea{width:100%;height:100%;min-height:300px;border:none;outline:none;resize:none;font-size:14px;line-height:1.9;color:#1a1a1a;background:transparent;font-family:'Menlo','Monaco','Courier New',monospace}
+.preview-pane{flex:1;padding:16px 24px;overflow-y:auto;display:none;border-left:1px solid #f0f0ec;min-height:0;height:100%}
+.preview-pane.show{display:block}
+.math-block{overflow-x:auto;margin:12px 0;padding:8px;background:#f9f9ff;border-radius:6px;text-align:center}
+.katex-display{margin:0}
+.split-view .edit-pane{flex:1}
+.split-view .preview-pane{display:block;flex:1}
+/* Markdown preview styles */
+.preview-pane h1{font-size:22px;font-weight:700;margin:0 0 12px;color:#1a1a1a;border-bottom:2px solid #e8e8e4;padding-bottom:8px}
+.preview-pane h2{font-size:18px;font-weight:600;margin:20px 0 8px;color:#1a1a1a;border-bottom:1px solid #f0f0ec;padding-bottom:4px}
+.preview-pane h3{font-size:15px;font-weight:600;margin:16px 0 6px;color:#333}
+.preview-pane p{margin:0 0 10px;line-height:1.8;color:#333}
+.preview-pane ul,.preview-pane ol{margin:0 0 10px 20px;line-height:1.8;color:#333}
+.preview-pane li{margin-bottom:3px}
+.preview-pane blockquote{border-left:3px solid #a5b4fc;padding:6px 12px;margin:10px 0;background:#f9f9ff;color:#555;border-radius:0 6px 6px 0}
+.preview-pane code{background:#f0f0ec;padding:1px 5px;border-radius:4px;font-family:monospace;font-size:13px;color:#d63384}
+.preview-pane pre{background:#f5f5f0;padding:12px;border-radius:8px;overflow-x:auto;margin:10px 0}
+.preview-pane pre code{background:none;padding:0;color:#1a1a1a}
+.preview-pane img{max-width:100%;border-radius:8px;margin:8px 0;box-shadow:0 2px 8px rgba(0,0,0,0.1);display:block}
+.preview-pane strong{font-weight:600;color:#1a1a1a}
+.preview-pane em{font-style:italic;color:#555}
+.preview-pane hr{border:none;border-top:1px solid #e8e8e4;margin:16px 0}
+.preview-pane table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
+.preview-pane th{background:#f0eefc;padding:7px 10px;text-align:left;font-weight:600;border:1px solid #e0defa}
+.preview-pane td{padding:6px 10px;border:1px solid #e8e8e4}
+.preview-pane tr:nth-child(even){background:#f9f9ff}
+.editor-footer{padding:8px 20px;border-top:1px solid #e8e8e4;display:flex;align-items:center;justify-content:space-between}
+.word-count{font-size:12px;color:#bbb}
+.footer-btns{display:flex;gap:8px}
+.del-btn{padding:5px 12px;border:1px solid #fca5a5;border-radius:7px;background:transparent;color:#ef4444;font-size:13px;cursor:pointer;font-family:inherit}
+.del-btn:hover{background:#fef2f2}
+.save-btn{padding:5px 16px;background:#4f46e5;color:#fff;border:none;border-radius:7px;font-size:13px;cursor:pointer;font-family:inherit}
+.save-btn:hover{background:#4338ca}
+.save-btn.saved{background:#10b981}
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#ccc;gap:10px;font-size:14px}
+.empty svg{width:40px;height:40px;opacity:0.3}
+.loading{text-align:center;padding:20px;color:#bbb;font-size:13px}
+.toast{position:fixed;bottom:20px;right:20px;background:#1a1a1a;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:100}
+.toast.show{opacity:1}
+.upload-progress{font-size:11px;color:#6366f1;padding:2px 6px}
+/* ── 新增：化学结构样式 ── */
+.chem-block{display:inline-block;background:#f9f9ff;border-radius:8px;padding:6px;margin:4px 2px;border:1px solid #e0defa;text-align:center;vertical-align:middle}
+.chem-block canvas{display:block;max-width:100%}
+.chem-error{color:#ef4444;font-size:12px;font-family:monospace;background:#fef2f2;padding:4px 8px;border-radius:4px;border:1px solid #fca5a5}
+.chem-inline-wrap{display:inline-flex;flex-direction:column;align-items:center;background:#f9f9ff;border-radius:8px;border:1px solid #e0defa;padding:4px 6px;margin:2px 4px;vertical-align:middle;cursor:default}
+.chem-inline-wrap canvas{display:block}
+.chem-label{font-size:10px;color:#888;font-family:monospace;margin-top:2px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 </style>
 </head>
 <body>
-
 <div class="app">
   <div class="sidebar">
     <div class="sidebar-top">
-      <div class="search-wrapper">
-        <input type="text" id="searchInput" placeholder="搜索标题或内容...">
-        <span class="clear-btn" id="searchClear">&times;</span>
+      <div class="app-title">📚 我的知识库</div>
+      <div class="search-box">
+        <svg width="14" height="14" fill="none" stroke="#aaa" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" placeholder="搜索笔记..." id="searchInput">
       </div>
-      <button class="btn" id="newBtn">+ 新建笔记</button>
-      <a href="#" class="cat-manager-toggle" id="mgrCatLink">管理分类</a>
     </div>
-    <div class="cat-list" id="catListZone"></div>
-    <div class="note-list-wrapper" id="noteListZone"></div>
+    <div class="section-label">分类</div>
+    <div class="cat-list" id="catList"></div>
+    <button class="new-btn" id="newBtn">＋ 新建笔记</button>
   </div>
-
-  <div class="main">
-    <div id="emptyState" class="empty-state">
-      <p>请选择一篇笔记，或点击左上角新建</p>
+  <div class="note-list">
+    <div class="list-header"><span id="listTitle">全部笔记</span><span id="listCount" style="font-size:12px;color:#bbb"></span></div>
+    <div class="note-items" id="noteItems"></div>
+  </div>
+  <div class="editor" id="editor">
+    <div id="emptyState" class="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      选择笔记或新建一篇
     </div>
-    
-    <div id="editorContent" class="main" style="display:none;">
+    <div id="editorContent" style="display:none;flex:1;flex-direction:column">
       <div class="toolbar">
-        <div class="toolbar-left">
-          <button class="t-btn" id="saveBtn">保存 (Ctrl+S)</button>
-          <div class="tag-input-zone" id="tagZone">
-            <input type="text" id="tagInput" placeholder="+ 标签">
-          </div>
-        </div>
-        <div class="toolbar-right">
-          <button class="t-btn" id="modeBtn">分栏</button>
-          <button class="t-btn danger" id="delBtn">删除</button>
-        </div>
+        <button class="tb-btn" onclick="ins('**','**')"><b>B</b></button>
+        <button class="tb-btn" onclick="ins('*','*')"><i>I</i></button>
+        <button class="tb-btn" onclick="insLine('## ')">H2</button>
+        <button class="tb-btn" onclick="insLine('### ')">H3</button>
+        <button class="tb-btn" onclick="insLine('- ')">列表</button>
+        <button class="tb-btn" onclick="insLine('> ')">引用</button>
+        <button class="tb-btn" onclick="ins('\`','\`')">代码</button>
+        <button class="tb-btn" onclick="insLine('---')">分割线</button>
+        <label class="img-upload-btn" title="插入图片">
+          🖼 图片
+          <input type="file" id="imgUploadInput" accept="image/*" onchange="uploadImage(this)">
+        </label>
+        <span id="uploadProgress" class="upload-progress"></span>
+        <span style="flex:1"></span>
+        <button class="download-btn" onclick="downloadPDF()" title="下载为PDF">⬇ 下载PDF</button>
+        <button class="tb-btn" id="previewBtn" onclick="togglePreview()">👁 预览</button>
+        <button class="tb-btn" id="splitBtn" onclick="toggleSplit()">⬛ 分屏</button>
+        <select class="tb-select" id="catSelect">
+          <option value="">选择分类</option>
+          <option>有机化学</option>
+          <option>无机化学</option>
+          <option>分析化学</option>
+          <option>物理化学</option>
+          <option>编程</option>
+          <option>数学</option>
+          <option>英语</option>
+          <option>读书笔记</option>
+          <option>其他</option>
+        </select>
       </div>
-      
-      <div class="editor-layout">
+      <input class="editor-title" id="noteTitle" placeholder="笔记标题...">
+      <div class="editor-tags" id="editorTags"></div>
+      <div class="editor-area" id="editorArea">
         <div class="edit-pane" id="editPane">
-          <div class="edit-title-wrapper">
-            <input type="text" id="noteTitle" placeholder="输入标题...">
-            <select id="noteCatSelect"></select>
-          </div>
-          <div style="margin-bottom:6px;display:flex;gap:4px;">
-            <button class="t-btn" style="padding:2px 6px;font-size:11px;" onclick="ins('**','**')">B</button>
-            <button class="t-btn" style="padding:2px 6px;font-size:11px;" onclick="ins('*','*')">I</button>
-            <button class="t-btn" style="padding:2px 6px;font-size:11px;" onclick="ins('$$','$$')">公式行</button>
-            <button class="t-btn" style="padding:2px 6px;font-size:11px;" onclick="insLine('$$$')">公式块</button>
-            <button class="t-btn" style="padding:2px 6px;font-size:11px;" onclick="insLine('```\n','\n```')">代码</button>
-          </div>
-          <textarea id="noteContent" placeholder="开始编写 Markdown... 支持 KaTeX 公式（行内用 $$，整行块用单独一行$$$包裹开头结尾）。支持化学结构简写自动渲染。"></textarea>
+          <textarea id="noteContent" placeholder="开始记录你的想法...\n\n支持 Markdown 格式：\n## 标题\n**粗体** *斜体*\n- 列表项\n> 引用\n\n图片：点击工具栏「🖼 图片」上传"></textarea>
         </div>
         <div class="preview-pane" id="previewPane"></div>
       </div>
+      <div class="editor-footer">
+        <span class="word-count" id="wordCount">0 字</span>
+        <div class="footer-btns">
+          <button class="del-btn" onclick="deleteNote()">删除</button>
+          <button class="save-btn" id="saveBtn" onclick="saveNote()">保存</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
-
-<div class="toast" id="toastZone"></div>
-
-<div class="cat-modal" id="catModal">
-  <div class="cat-modal-content">
-    <div class="cat-modal-header">
-      <span>管理自定义分类</span>
-      <span style="cursor:pointer;" id="closeCatModal">&times;</span>
-    </div>
-    <div class="cat-modal-body" id="catMgrList"></div>
-    <div class="cat-modal-footer">
-      <input type="text" id="newCatInput" placeholder="新分类名称...">
-      <button class="t-btn" id="addCatBtn" style="background:#a3a375;color:#fff;border:none;">添加</button>
-    </div>
-  </div>
-</div>
+<div class="toast" id="toast"></div>
 
 <script>
-// Supabase 数据库配置
-const API = 'https://jcxxifymtgxcaxmggubi.supabase.co/rest/v1/notes';
-const HEADERS = {
-  'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjeHhpZnltdGd4Y2F4bWdndWJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ0NjY1MDQsImV4cCI6MjA2MDA0MjUwNH0.4Lpxz9R8_YyZtP-1W_ZofHwK7eDpxpX6Nf8E_z0E-Ww',
-  'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjeHhpZnltdGd4Y2F4bWdndWJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ0NjY1MDQsImV4cCI6MjA2MDA0MjUwNH0.4Lpxz9R8_YyZtP-1W_ZofHwK7eDpxpX6Nf8E_z0E-Ww',
-  'Content-Type': 'application/json'
-};
+const SUPABASE_URL = 'https://jcxxifymtgxcaxmggubi.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_K4BcxTkYldQ_0Pn2dtgRcQ_10_U9yEg';
+const API = SUPABASE_URL + '/rest/v1/notes';
+const STORAGE_API = SUPABASE_URL + '/storage/v1/object';
+const HEADERS = {'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
 
-let notes = [];
-let customCats = ['有机化学','无机化学','分析化学','物理化学','编程','数学','英语','读书笔记'];
-let currentId = null;
-let currentCat = '全部';
-let viewMode = 'split'; // split, edit, preview
+let notes=[], currentId=null, currentCat='全部', viewMode='edit';
 
-// 初始化 SmilesDrawer 绘图器
-let sdOptions = { width: 300, height: 300, bondThickness: 1.5, textSize: 14 };
-let smilesDrawer = new SmilesDrawer.Drawer(sdOptions);
+function toast(msg,dur){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur||2000)}
 
-// 化学名称/简写转 SMILES 的字典映射
-function formulaToSmiles(text) {
-  let t = text.trim();
-  const dict = {
-    'CH3COOH': 'CC(=O)O', 'CH₃COOH': 'CC(=O)O', '乙酸': 'CC(=O)O', '醋酸': 'CC(=O)O',
-    'C6H6': 'c1ccccc1', '苯': 'c1ccccc1',
-    'EtOH': 'CCO', 'C2H5OH': 'CCO', '乙醇': 'CCO',
-    'C6H5COCH3': 'CC(=O)c1ccccc1', '苯乙酮': 'CC(=O)c1ccccc1',
-    'H2O': 'O', '水': 'O',
-    'NaCl': '[Na+].[Cl-]',
-    '葡萄糖': 'C(C1C(C(C(C(O1)O)O)O)O)O'
-  };
-  return dict[t] || t; 
-}
+// ── 图片上传 ────────────────────────────────────────────
+async function uploadImage(input){
+  const file = input.files[0];
+  if(!file) return;
+  const prog = document.getElementById('uploadProgress');
+  prog.textContent = '上传中...';
 
-function toast(msg){
-  const t=document.getElementById('toastZone');
-  t.innerText=msg;t.style.display='block';
-  setTimeout(()=>t.style.display='none',2000);
-}
+  const fileName = Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  const bucket = 'note-images';
 
-// 🛠️ 修复点1：加载数据时，默认将所有已有笔记设为 _saved: true 状态，保持一致性
-async function fetchNotes(){
-  try{
-    const r=await fetch(API+'?order=updated_at.desc', {headers:HEADERS});
-    const res=await r.json();
-    notes = res.map(item => ({ ...item, _saved: true }));
-    renderAll();
-  }catch(e){toast('数据加载失败');}
-}
+  try {
+    const r = await fetch(STORAGE_API + '/' + bucket + '/' + fileName, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': file.type,
+        'x-upsert': 'true'
+      },
+      body: file
+    });
 
-function renderAll(){
-  renderCats();
-  renderList();
-  if(currentId) {
-    const exists = notes.some(x=>x.id===currentId);
-    if(exists) openNote(currentId);
-    else closeEditor();
+    if(r.ok){
+      const publicUrl = SUPABASE_URL + '/storage/v1/object/public/' + bucket + '/' + fileName;
+      insertImageMd(publicUrl, file.name);
+      prog.textContent = '✓ 上传成功';
+      setTimeout(()=>prog.textContent='', 2000);
+    } else {
+      await insertBase64(file);
+      prog.textContent = '✓ 已嵌入（Base64）';
+      setTimeout(()=>prog.textContent='', 2000);
+    }
+  } catch(e) {
+    await insertBase64(file);
+    prog.textContent = '✓ 已嵌入';
+    setTimeout(()=>prog.textContent='', 2000);
   }
+  input.value = '';
 }
 
-function closeEditor(){
-  currentId=null;
-  document.getElementById('emptyState').style.display='';
-  document.getElementById('editorContent').style.display='none';
+function insertImageMd(url, name){
+  const ta = document.getElementById('noteContent');
+  const md = '\n![' + (name||'图片') + '](' + url + ')\n';
+  const s = ta.selectionStart;
+  ta.value = ta.value.slice(0,s) + md + ta.value.slice(s);
+  ta.selectionStart = ta.selectionEnd = s + md.length;
+  ta.focus();
+  updatePreview();
+  resetSaveBtn();
 }
 
-function loadCatsFromLocal(){
-  const s=localStorage.getItem('my_custom_cats');
-  if(s) customCats=JSON.parse(s);
-}
-function saveCatsToLocal(){
-  localStorage.setItem('my_custom_cats',JSON.stringify(customCats));
-}
-
-function renderCats(){
-  const zone=document.getElementById('catListZone');
-  let counts={ '全部': notes.length, '未分类': 0 };
-  customCats.forEach(c=>counts[c]=0);
-  
-  notes.forEach(n=>{
-    let cat = n.category || '未分类';
-    if(counts[cat]!==undefined) counts[cat]++;
-    else counts['未分类']++;
+function insertBase64(file){
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const md = '\n![' + file.name + '](' + e.target.result + ')\n';
+      const ta = document.getElementById('noteContent');
+      const s = ta.selectionStart;
+      ta.value = ta.value.slice(0,s) + md + ta.value.slice(s);
+      ta.selectionStart = ta.selectionEnd = s + md.length;
+      ta.focus();
+      updatePreview();
+      resetSaveBtn();
+      resolve();
+    };
+    reader.readAsDataURL(file);
   });
-
-  let html=`<div class="cat-item ${currentCat==='全部'?'active':''}" onclick="switchCat('全部')"><span>全部</span><span class="cat-count">${counts['全部']}</span></div>`;
-  customCats.forEach(c=>{
-    html+=`<div class="cat-item ${currentCat===c?'active':''}" onclick="switchCat('${c}')"><span>${c}</span><span class="cat-count">${counts[c]}</span></div>`;
-  });
-  html+=`<div class="cat-item ${currentCat==='未分类'?'active':''}" onclick="switchCat('未分类')"><span>未分类</span><span class="cat-count">${counts['未分类']}</span></div>`;
-  zone.innerHTML=html;
-
-  const sel=document.getElementById('noteCatSelect');
-  let selHtml='<option value="未分类">未分类</option>';
-  customCats.forEach(c=>{ selHtml+=`<option value="${c}">${c}</option>`; });
-  sel.innerHTML=selHtml;
 }
 
-function switchCat(cat){
-  currentCat=cat;
-  renderCats();
-  renderList();
-}
+// ── 新增：下载PDF（打印方式，不弹窗直接下载）──────────────
+async function downloadPDF(){
+  const n = notes.find(x=>x.id===currentId);
+  if(!n){toast('请先选择笔记');return;}
+  const title = document.getElementById('noteTitle').value || '无标题';
+  const htmlBody = mdToHtml(document.getElementById('noteContent').value);
 
-function renderList(){
-  const zone=document.getElementById('noteListZone');
-  const kw=document.getElementById('searchInput').value.trim().toLowerCase();
-  document.getElementById('searchClear').style.display=kw?'block':'none';
-
-  let filtered=notes;
-  if(currentCat==='未分类'){
-    filtered=notes.filter(n=>(!n.category || n.category==='未分类'));
-  }else if(currentCat!=='全部'){
-    filtered=notes.filter(n=>n.category==='全部'||n.category===currentCat);
-  }
-
-  if(kw){
-    filtered=filtered.filter(n=>(n.title&&n.title.toLowerCase().includes(kw))||(n.content&&n.content.toLowerCase().includes(kw)));
-  }
-
-  if(filtered.length===0){
-    zone.innerHTML='<div style="padding:20px;text-align:center;color:#999;font-size:12px;">无笔记</div>';
+  // 电脑端用 jsPDF 直接下载，手机端用打印
+  const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+  if(isMobile){
+    const win = window.open('','_blank');
+    if(!win){toast('请允许弹出窗口');return;}
+    win.document.write(buildPrintHtml(title, htmlBody));
+    win.document.close();
+    toast('请选择「存储为PDF」');
     return;
   }
 
-  let html='';
-  filtered.forEach(n=>{
-    let active = n.id===currentId?'active':'';
-    let t = n.title || '无标题笔记';
-    let d = n.updated_at ? n.updated_at.slice(2,10)+' '+n.updated_at.slice(11,16) : '';
-    let catTag = n.category && n.category!=='未分类' ? `[${n.category}] ` : '';
-    
-    let tagsHtml='';
-    if(n.tags && n.tags.length){
-      n.tags.forEach(tg=>{ tagsHtml+=`<span class="tag-badge">${tg}</span>`; });
-    }
-
-    html+=`
-      <div class="note-item ${active}" onclick="openNote('${n.id}')">
-        <div class="note-title">${catTag}${t}</div>
-        <div class="note-meta"><span>${d}</span></div>
-        <div class="note-tags">${tagsHtml}</div>
-      </div>
-    `;
-  });
-  zone.innerHTML=html;
-}
-
-function openNote(id){
-  currentId=id;
-  const n=notes.find(x=>x.id===id);
-  if(!n) return;
-
-  document.getElementById('emptyState').style.display='none';
-  document.getElementById('editorContent').style.display='';
-
-  document.getElementById('noteTitle').value=n.title||'';
-  document.getElementById('noteCatSelect').value=n.category||'未分类';
-  document.getElementById('noteContent').value=n.content||'';
-
-  renderList();
-  renderTags(n.tags||[]);
-  updatePreview();
-}
-
-function renderTags(tags){
-  const zone=document.getElementById('tagZone');
-  const inp=document.getElementById('tagInput');
-  const old=zone.querySelectorAll('.tag-badge');
-  old.forEach(x=>x.remove());
-  tags.forEach(t=>{
-    let sp=document.createElement('span');
-    sp.className='tag-badge';
-    sp.innerHTML=`${t} <b style="cursor:pointer" onclick="removeTag('${t}')">&times;</b>`;
-    zone.insertBefore(sp,inp);
-  });
-}
-
-function removeTag(t){
-  const n=notes.find(x=>x.id===currentId);
-  if(n){
-    n.tags=(n.tags||[]).filter(x=>x!==t);
-    renderTags(n.tags);
-    renderList();
-  }
-}
-
-document.getElementById('tagInput').onkeydown=(e)=>{
-  if(e.key==='Enter'){
-    let val=e.target.value.trim().replace(/,/g,'');
-    if(!val) return;
-    const n=notes.find(x=>x.id===currentId);
-    if(n){
-      if(!n.tags) n.tags=[];
-      if(!n.tags.includes(val)){
-        n.tags.push(val);
-        renderTags(n.tags);
-        renderList();
-      }
-    }
-    e.target.value='';
-  }
-};
-
-function mdToHtml(md) {
-  if(!md) return '';
-  let html = md
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-
-  let lines = html.split('\n');
-  let inCodeBlock = false;
-  
-  for(let i=0; i<lines.length; i++) {
-    let line = lines[i].trim();
-    if(line.startsWith('```')) { inCodeBlock = !inCodeBlock; continue; }
-    if(inCodeBlock) continue;
-
-    if(line.startsWith('$$$')) {
-      let formula = line.substring(3).trim();
-      let smiles = formulaToSmiles(formula);
-      let canvasId = 'canvas-' + Math.random().toString(36).substring(2, 9);
-      lines[i] = `<canvas id="${canvasId}" class="smiles-canvas" data-smiles="${smiles}"></canvas>`;
-    }
-  }
-  html = lines.join('\n');
-
-  html = html.replace(/\$\$\$\s*([\s\S]*?)\s*\$\$\$/g, '<div class="katex-block-target">$$$1$$</div>');
-
-  html = html
-    .replace(/^# (.*)$/gm, '<h1>$1</h1>')
-    .replace(/^## (.*)$/gm, '<h2>$1</h2>')
-    .replace(/^### (.*)$/gm, '<h3>$1</h3>')
-    .replace(/^&gt; (.*)$/gm, '<blockquote>$1</blockquote>')
-    .replace(/^\s*\n/gm, '<br>')
-    .replace(/\*\*(.*?)\*\//g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>');
-
-  html = html.replace(/^\|([\s\S]*?)\|$/gm, function(match) {
-    let cells = match.split('|').map(c=>c.trim()).filter((c,idx,arr)=>idx>0 && idx<arr.length-1);
-    if(match.includes('---')) return '';
-    return `<tr>${cells.map(c=>`<td>${c}</td>`).join('')}</tr>`;
-  });
-  html = html.replace(/((?:<tr>[\s\S]*?<\/tr>)+)/g, '<table>$1</table>');
-  html = html.replace(/<table>\s*<tr>([\s\S]*?)<\/tr>/g, '<table><thead><tr>$1</tr></thead><tbody>');
-  html = html.replace(/<\/tr>\s*<\/table>/g, '</tr></tbody></table>');
-  html = html.replace(/<thead><tr>([\s\S]*?)<\/tr><\/thead>/g, function(m, p1){
-    return `<thead><tr>${p1.replace(/<td>/g,'<th>').replace(/<\/td>/g,'<\/th>')}</tr></thead>`;
-  });
-
-  html = html.replace(/^\s*[\-\*]\s+(.*)$/gm, '<li>$1</li>');
-  html = html.replace(/((?:<li>.*?<\/li>\s*)+)/g, '<ul>$1</ul>');
-  html = html.replace(/^\s*(\d+)\.\s+(.*)$/gm, '<li>$2</li>');
-  html = html.replace(/((?:<li>.*?<\/li>\s*)+)/g, function(m){
-    if(m.trim().startsWith('<ul>')) return m;
-    return `<ol>${m}</ol>`;
-  });
-
-  return html;
-}
-
-function updatePreview(){
-  const pane=document.getElementById('previewPane');
-  const txt=document.getElementById('noteContent').value;
-  pane.innerHTML = mdToHtml(txt);
-
-  renderMathInElement(pane, {
-    delimiters: [
-      {left: '$$$', right: '$$$', display: true},
-      {left: '$$', right: '$$', display: false},
-      {left: '$', right: '$', display: false}
-    ],
-    throwOnError: false
-  });
-
-  const canvases = pane.querySelectorAll('.smiles-canvas');
-  canvases.forEach(canvas => {
-    let smiles = canvas.getAttribute('data-smiles');
-    if (smiles) {
-      SmilesDrawer.parse(smiles, function (tree) {
-        smilesDrawer.draw(tree, canvas, 'light', false);
-      }, function (err) {
-        console.error('化学分子SMILES解析失败:', err);
-      });
-    }
-  });
-}
-
-document.getElementById('noteContent').oninput = updatePreview;
-
-document.getElementById('noteTitle').oninput=(e)=>{
-  const n=notes.find(x=>x.id===currentId);
-  if(n){ n.title=e.target.value; renderList(); }
-};
-document.getElementById('noteCatSelect').onchange=(e)=>{
-  const n=notes.find(x=>x.id===currentId);
-  if(n){ n.category=e.target.value; renderCats(); renderList(); }
-};
-
-async function saveNote(){
-  if(!currentId) return;
-  const n=notes.find(x=>x.id===currentId);
-  if(!n) return;
-
-  n.title = document.getElementById('noteTitle').value.trim() || '无标题笔记';
-  n.category = document.getElementById('noteCatSelect').value;
-  n.content = document.getElementById('noteContent').value;
-  n.updated_at = new Date().toISOString();
-
-  const payload = {
-    title: n.title,
-    content: n.content,
-    category: n.category,
-    tags: n.tags || [],
-    updated_at: n.updated_at
-  };
-
+  toast('正在生成PDF...');
   try{
-    let url = API;
-    let method = 'POST';
-    if(n._saved && !n.id.toString().startsWith('tmp-')){
-      url = `${API}?id=eq.${n.id}`;
-      method = 'PATCH';
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+
+    const container = document.createElement('div');
+    container.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:#fff;padding:48px 56px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:14px;line-height:1.8;color:#1a1a1a;box-sizing:border-box;';
+    container.innerHTML = `
+      <div style="margin-bottom:20px">
+        <div style="font-size:22px;font-weight:700;color:#1a1a1a;margin-bottom:6px">${escapeHtml(title)}</div>
+        <div style="font-size:12px;color:#aaa">导出时间：${new Date().toLocaleString('zh-CN')}</div>
+      </div>
+      <hr style="border:none;border-top:1px solid #e8e8e4;margin-bottom:18px">
+      <style>
+        h1{font-size:20px;font-weight:700;margin:0 0 12px;padding-bottom:8px;border-bottom:2px solid #e8e8e4}
+        h2{font-size:17px;font-weight:600;margin:18px 0 8px;padding-bottom:4px;border-bottom:1px solid #f0f0ec}
+        h3{font-size:15px;font-weight:600;margin:14px 0 6px;color:#333}
+        p{margin:0 0 9px;color:#333}ul,ol{margin:0 0 9px 20px}li{margin-bottom:3px}
+        blockquote{border-left:3px solid #a5b4fc;padding:6px 12px;margin:10px 0;background:#f9f9ff;color:#555}
+        code{background:#f0f0ec;padding:1px 4px;border-radius:3px;font-family:monospace;font-size:12px;color:#d63384}
+        pre{background:#f5f5f0;padding:10px;border-radius:6px;margin:10px 0}
+        table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
+        th{background:#ede9fe;padding:6px 8px;font-weight:600;border:1px solid #e0defa}
+        td{padding:5px 8px;border:1px solid #e8e8e4}tr:nth-child(even){background:#f9f9ff}
+        strong{font-weight:600}em{font-style:italic;color:#555}
+        hr{border:none;border-top:1px solid #e8e8e4;margin:14px 0}
+        img{max-width:100%;border-radius:6px;margin:6px 0;display:block}
+      </style>
+      <div>${htmlBody}</div>`;
+    document.body.appendChild(container);
+
+    const canvas = await html2canvas(container,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false});
+    document.body.removeChild(container);
+
+    const {jsPDF} = window.jspdf;
+    const imgData = canvas.toDataURL('image/jpeg',0.92);
+    const pageW = 210, pageH = 297;
+    const imgW = pageW;
+    const imgH = (canvas.height * imgW) / canvas.width;
+    const pdf = new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+
+    let yOffset = 0, remaining = imgH;
+    while(remaining > 0){
+      if(yOffset > 0) pdf.addPage();
+      pdf.addImage(imgData,'JPEG',0,-yOffset,imgW,imgH,undefined,'FAST');
+      yOffset += pageH;
+      remaining -= pageH;
     }
 
-    const res = await fetch(url, {
-      method: method,
-      headers: { ...HEADERS, 'Prefer': 'return=representation' },
-      body: JSON.stringify(payload)
-    });
-
-    if(res.ok){
-      const returnedData = await res.json();
-      if(method==='POST' && returnedData && returnedData[0]){
-        n.id = returnedData[0].id;
-      }
-      n._saved = true;
-      toast('保存成功');
-      renderAll();
-    }else{
-      toast('云端保存失败');
-    }
-  }catch(e){ toast('网络异常，保存失败'); }
+    pdf.save((title+'.pdf').replace(/[\\/:*?"<>|]/g,'_'));
+    toast('✓ 已下载 '+title+'.pdf');
+  } catch(e){
+    console.error(e);
+    toast('PDF生成失败，请重试',3000);
+  }
 }
 
-document.getElementById('saveBtn').onclick=saveNote;
-window.onkeydown=(e)=>{
-  if((e.ctrlKey||e.metaKey) && e.key==='s'){ e.preventDefault(); saveNote(); }
-};
-
-// 🛠️ 修复点2：彻底解除以前阻碍删除的限制条件，只要存在 id 就直接触发真实的 DELETE 云同步
-document.getElementById('delBtn').onclick=async()=>{
-  if(!currentId) return;
-  if(!confirm('确定彻底删除这条笔记吗？此操作将永久同步并清空云端数据库数据。')) return;
-  
-  const n=notes.find(x=>x.id===currentId);
-  if(n) {
-    if(!n.id.toString().startsWith('tmp-')) {
-      try {
-        await fetch(API+'?id=eq.'+currentId, { method:'DELETE', headers:HEADERS });
-      } catch(err) {
-        console.error("云端同步删除失败:", err);
-      }
-    }
-  }
-  
-  notes=notes.filter(x=>x.id!==currentId);
-  closeEditor();
-  toast('已成功彻底删除');
-  renderAll();
-};
-
-document.getElementById('newBtn').onclick=()=>{
-  const n={id:'tmp-'+Date.now(),title:'',content:'',
-    category:currentCat==='全部'||currentCat==='未分类'?'其他':currentCat,
-    tags:[],updated_at:new Date().toISOString(),_saved:false};
-  notes.unshift(n);
-  renderCats();
-  renderList();
-  openNote(n.id);
-  setTimeout(()=>document.getElementById('noteTitle').focus(),50);
-};
-
-document.getElementById('searchInput').oninput=renderList;
-document.getElementById('searchClear').onclick=()=>{
-  document.getElementById('searchInput').value='';
-  renderList();
-};
-
-document.getElementById('modeBtn').onclick=()=>{
-  const btn=document.getElementById('modeBtn');
-  const ep=document.getElementById('editPane');
-  const pp=document.getElementById('previewPane');
-  if(viewMode==='split'){
-    viewMode='edit';btn.innerText='编辑';
-    ep.style.display='';pp.style.display='none';
-  }else if(viewMode=='edit'){
-    viewMode='preview';btn.innerText='预览';
-    ep.style.display='none';pp.style.display='';
-  }else{
-    viewMode='split';btn.innerText='分栏';
-    ep.style.display='';pp.style.display='';
-  }
-};
-
-document.getElementById('mgrCatLink').onclick=(e)=>{
-  e.preventDefault();
-  document.getElementById('catModal').style.display='flex';
-  renderMgrCats();
-};
-document.getElementById('closeCatModal').onclick=()=>{
-  document.getElementById('catModal').style.display='none';
-};
-function renderMgrCats(){
-  const zone=document.getElementById('catMgrList');
-  let html='';
-  customCats.forEach(c=>{
-    html+=`<div class="cat-mgr-item"><span>${c}</span><span class="cat-mgr-del" onclick="delCustomCat('${c}')">删除</span></div>`;
+function loadScript(src){
+  return new Promise((resolve,reject)=>{
+    if(document.querySelector('script[src="'+src+'"]')){resolve();return;}
+    const s=document.createElement('script');
+    s.src=src;s.onload=resolve;s.onerror=reject;
+    document.head.appendChild(s);
   });
-  zone.innerHTML=html;
 }
-window.delCustomCat=function(c){
-  if(confirm(`确定删除分类 [${c}] 吗？对应笔记不会被删，会被归入 [未分类] 中。`)){
-    customCats=customCats.filter(x=>x!==c);
-    saveCatsToLocal();
-    renderMgrCats();
-    renderAll();
+
+function buildPrintHtml(title, htmlBody){
+  return `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>${escapeHtml(title)}</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,sans-serif;font-size:14px;line-height:1.8;color:#1a1a1a;padding:32px 40px;max-width:800px;margin:0 auto}
+h1{font-size:22px;font-weight:700;margin:0 0 14px;padding-bottom:8px;border-bottom:2px solid #e8e8e4}
+h2{font-size:18px;font-weight:600;margin:18px 0 8px;padding-bottom:4px;border-bottom:1px solid #f0f0ec}
+h3{font-size:15px;font-weight:600;margin:14px 0 6px;color:#333}p{margin:0 0 10px;color:#333}
+ul,ol{margin:0 0 10px 22px}li{margin-bottom:3px}
+blockquote{border-left:3px solid #a5b4fc;padding:6px 12px;margin:10px 0;background:#f9f9ff;color:#555}
+code{background:#f0f0ec;padding:1px 5px;border-radius:4px;font-family:monospace;font-size:12px;color:#d63384}
+pre{background:#f5f5f0;padding:10px;border-radius:6px;margin:10px 0}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
+th{background:#ede9fe;padding:6px 10px;font-weight:600;border:1px solid #e0defa}
+td{padding:5px 10px;border:1px solid #e8e8e4}tr:nth-child(even){background:#f9f9ff}
+strong{font-weight:600}em{font-style:italic}hr{border:none;border-top:1px solid #e8e8e4;margin:14px 0}
+img{max-width:100%;border-radius:6px;margin:6px 0;display:block}
+.ph{margin-bottom:20px}.pt{font-size:22px;font-weight:700;margin-bottom:6px}.pm{font-size:12px;color:#aaa}
+@media print{body{padding:20px 28px}@page{margin:1.5cm;size:A4}}
+</style></head><body>
+<div class="ph"><div class="pt">${escapeHtml(title)}</div><div class="pm">导出时间：${new Date().toLocaleString('zh-CN')}</div></div>
+<hr style="margin-bottom:16px"><div>${htmlBody}</div>
+<script>window.onload=function(){setTimeout(function(){window.print()},400)};window.onafterprint=function(){window.close()}<\/script>
+</body></html>`;
+}
+
+// ── Markdown 渲染 ──────────────────────────────────────
+function mdToHtml(md){
+  let codeBlocks = [];
+  md = md.replace(/```([\s\S]*?)```/g, function(m, c) {
+    codeBlocks.push(c.trim());
+    return 'CODEBLOCK' + (codeBlocks.length-1) + 'END';
+  });
+
+  let inlineCodes = [];
+  md = md.replace(/`([^`]+)`/g, function(m, c) {
+    inlineCodes.push(c);
+    return 'INLINECODE' + (inlineCodes.length-1) + 'END';
+  });
+
+  let mathBlocks = [], mathInlines = [];
+  md = md.replace(/\$\$([\s\S]+?)\$\$/g, function(m, f) {
+    mathBlocks.push(f);
+    return 'MATHBLOCK' + (mathBlocks.length-1) + 'END';
+  });
+  md = md.replace(/\$([^\$\n]+?)\$/g, function(m, f) {
+    mathInlines.push(f);
+    return 'MATHINLINE' + (mathInlines.length-1) + 'END';
+  });
+
+  let tableBlocks = [];
+  md = md.replace(/((?:^\|.+\|\s*\n)+)/gm, function(match) {
+    var lines = match.trim().split('\n').filter(l => l.trim());
+    var result = '<table>';
+    var headerDone = false;
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim();
+      if (!line) continue;
+      if (/^\|[\s\-:]+\|$/.test(line.replace(/[^|\-: ]/g,''))) {
+        headerDone = true;
+        continue;
+      }
+      var cells = line.split('|').slice(1,-1).map(c => c.trim());
+      if (!headerDone) {
+        result += '<thead><tr>' + cells.map(c=>'<th>'+c+'</th>').join('') + '</tr></thead><tbody>';
+      } else {
+        result += '<tr>' + cells.map(c=>'<td>'+c+'</td>').join('') + '</tr>';
+      }
+    }
+    if (headerDone) result += '</tbody>';
+    result += '</table>';
+    tableBlocks.push(result);
+    return 'TABLEBLOCK' + (tableBlocks.length-1) + 'END\n';
+  });
+
+  let h = md
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;');
+
+  h = h.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:8px;margin:8px 0;display:block">');
+  h = h.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color:#4338ca">$1</a>');
+
+  var lines = h.split('\n');
+  var out = [];
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    if (/^#### /.test(line)) {
+      out.push('<h4 style="font-size:13px;font-weight:600;margin:12px 0 4px;color:#444">' + line.slice(5) + '</h4>');
+    } else if (/^### /.test(line)) {
+      out.push('<h3 style="font-size:15px;font-weight:600;margin:16px 0 6px;color:#333">' + line.slice(4) + '</h3>');
+    } else if (/^## /.test(line)) {
+      out.push('<h2 style="font-size:18px;font-weight:600;margin:20px 0 8px;color:#1a1a1a;border-bottom:1px solid #f0f0ec;padding-bottom:4px">' + line.slice(3) + '</h2>');
+    } else if (/^# /.test(line)) {
+      out.push('<h1 style="font-size:22px;font-weight:700;margin:0 0 12px;color:#1a1a1a;border-bottom:2px solid #e8e8e4;padding-bottom:8px">' + line.slice(2) + '</h1>');
+    } else if (/^> /.test(line)) {
+      out.push('<blockquote style="border-left:3px solid #a5b4fc;padding:6px 12px;margin:10px 0;background:#f9f9ff;color:#555">' + line.slice(2) + '</blockquote>');
+    } else if (/^- /.test(line)) {
+      out.push('<li style="margin-bottom:3px;margin-left:20px">' + line.slice(2) + '</li>');
+    } else if (/^\d+\. /.test(line)) {
+      out.push('<li style="margin-bottom:3px;margin-left:20px">' + line.slice(line.indexOf('.')+2) + '</li>');
+    } else if (/^---/.test(line)) {
+      out.push('<hr style="border:none;border-top:1px solid #e8e8e4;margin:16px 0">');
+    } else if (line.trim()) {
+      out.push('<p style="margin:0 0 10px;line-height:1.8;color:#333">' + line + '</p>');
+    } else {
+      out.push('');
+    }
   }
-};
-document.getElementById('addCatBtn').onclick=()=>{
-  const inp=document.getElementById('newCatInput');
-  let name=inp.value.trim();
-  if(!name) return;
-  if(customCats.includes(name) || name==='全部' || name==='未分类'){ toast('分类名已存在'); return; }
-  customCats.push(name);
-  saveCatsToLocal();
-  inp.value='';
-  renderMgrCats();
-  renderAll();
-};
+  h = out.join('\n');
 
-function ins(pre,suf){
-  const ta=document.getElementById('noteContent');
-  const s=ta.selectionStart,e=ta.selectionEnd;
-  const sel=ta.value.slice(s,e);
-  ta.value=ta.value.slice(0,s)+pre+sel+suf+ta.value.slice(e);
-  ta.selectionStart=s+pre.length;ta.selectionEnd=s+pre.length+sel.length;
-  ta.focus(); updatePreview();
-}
-function insLine(pre, suf=''){
-  const ta=document.getElementById('noteContent');
-  const s=ta.selectionStart;
-  let val=ta.value;
-  ta.value=val.slice(0,s)+'\n'+pre+(suf?'\n'+suf:'')+'\n'+val.slice(s);
-  ta.focus(); updatePreview();
+  // 还原
+  tableBlocks.forEach((b, i) => { h = h.replace('TABLEBLOCK' + i + 'END', b); });
+  mathBlocks.forEach((b, i) => { h = h.replace('MATHBLOCK' + i + 'END', '<div class="math-block">$$' + b + '$$</div>'); });
+  mathInlines.forEach((b, i) => { h = h.replace('MATHINLINE' + i + 'END', '$' + b + '$'); });
+  inlineCodes.forEach((b, i) => { h = h.replace('INLINECODE' + i + 'END', '<code>' + b + '</code>'); });
+
+  codeBlocks.forEach((b, i) => {
+    if (b.startsWith('SMILES') || b.startsWith('smiles')) {
+      const smilesStr = b.replace(/^(SMILES|smiles)[\s\n]*/, '').trim();
+      h = h.replace('CODEBLOCK' + i + 'END', '<div class="chem-block" data-smiles="' + smilesStr + '"></div>');
+    } else {
+      h = h.replace('CODEBLOCK' + i + 'END', '<pre><code>' + b + '</code></pre>');
+    }
+  });
+
+  return h;
 }
 
-loadCatsFromLocal();
-fetchNotes();
+function escapeHtml(str) {
+  if(!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 </script>
-</body>
-</html>
+
+<script>
+(function() {
+  const originalUpdatePreview = window.updatePreview;
+  window.updatePreview = function() {
+    if (typeof originalUpdatePreview === 'function') {
+      originalUpdatePreview();
+    } else {
+      const pane = document.getElementById('previewPane');
+      const ta = document.getElementById('noteContent');
+      if (pane && ta) {
+        pane.innerHTML = mdToHtml(ta.value);
+      }
+    }
+    
+    // 异步触发公式和化学结构重新渲染
+    setTimeout(() => {
+      const pane = document.getElementById('previewPane');
+      if (!pane) return;
+      
+      // 1. 执行数学公式渲染
+      if (window.renderMathInElement) {
+        window.renderMathInElement(pane, {
+          delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false}
+          ],
+          throwOnError: false
+        });
+      }
+      
+      // 2. 执行化学结构 SMILES 渲染
+      if (window.SmilesDrawer) {
+        const chemBlocks = pane.querySelectorAll('.chem-block[data-smiles]');
+        chemBlocks.forEach((block, i) => {
+          if (block.getAttribute('data-rendered')) return;
+          const smiles = block.getAttribute('data-smiles');
+          const canvasId = 'chem-canvas-' + Date.now() + '-' + i;
+          block.innerHTML = '<canvas id="' + canvasId + '"></canvas><div class="chem-label">' + smiles + '</div>';
+          
+          const sd = new SmilesDrawer.Drawer({ width: 220, height: 160 });
+          SmilesDrawer.parse(smiles, function(tree) {
+            sd.draw(tree, canvasId, 'light', false);
+            block.setAttribute('data
