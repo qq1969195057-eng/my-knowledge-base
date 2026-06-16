@@ -7,6 +7,8 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<!-- 新增：SmilesDrawer 化学结构渲染库 -->
+<script src="https://unpkg.com/smiles-drawer@2.1.7/dist/smiles-drawer.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;background:#f5f5f0;color:#1a1a1a;height:100vh;overflow:hidden}
@@ -103,6 +105,10 @@ select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;back
 .toast{position:fixed;bottom:20px;right:20px;background:#1a1a1a;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:100}
 .toast.show{opacity:1}
 .upload-progress{font-size:11px;color:#6366f1;padding:2px 6px}
+/* ── 新增：化学结构样式 ── */
+.chem-block{display:inline-block;background:#f9f9ff;border-radius:8px;padding:8px;margin:6px 0;border:1px solid #e0defa;text-align:center}
+.chem-block canvas{display:block;max-width:100%}
+.chem-error{color:#ef4444;font-size:12px;font-family:monospace;background:#fef2f2;padding:4px 8px;border-radius:4px;border:1px solid #fca5a5}
 </style>
 </head>
 <body>
@@ -471,6 +477,59 @@ function mdToHtml(md){
 function updatePreview(){
   const md = document.getElementById('noteContent').value;
   document.getElementById('previewPane').innerHTML = mdToHtml(md);
+  // 新增：渲染化学结构（SMILES语法：```smiles ... ``` 或 @smiles{...}）
+  renderChemStructures();
+}
+
+// ── 新增：化学结构渲染函数 ──────────────────────────────
+function renderChemStructures(){
+  const pane = document.getElementById('previewPane');
+  // 找到所有 class="language-smiles" 的 <code> 块（来自 ```smiles ... ```）
+  pane.querySelectorAll('pre code.language-smiles, code.language-smiles').forEach(function(el){
+    const smiles = el.textContent.trim();
+    const wrapper = document.createElement('div');
+    wrapper.className = 'chem-block';
+    const canvas = document.createElement('canvas');
+    canvas.width = 300;
+    canvas.height = 200;
+    wrapper.appendChild(canvas);
+    el.closest('pre') ? el.closest('pre').replaceWith(wrapper) : el.replaceWith(wrapper);
+    try {
+      const drawer = new SmilesDrawer.SvgDrawer({width:300, height:200, themes:{light:{C:'#1a1a1a',O:'#e05252',N:'#4f46e5',S:'#d97706',F:'#059669',Cl:'#059669',Br:'#92400e',I:'#7c3aed',H:'#555',background:'#f9f9ff'}}});
+      SmilesDrawer.parse(smiles, function(tree){
+        drawer.draw(tree, canvas, 'light');
+      }, function(err){
+        wrapper.innerHTML = '<span class="chem-error">❌ SMILES错误: ' + escapeHtml(smiles) + '</span>';
+      });
+    } catch(e){
+      wrapper.innerHTML = '<span class="chem-error">❌ 渲染失败: ' + escapeHtml(smiles) + '</span>';
+    }
+  });
+
+  // 也支持行内语法 `@benzene` 或 `@C1=CC=CC=C1` （以@开头的行内代码自动识别为SMILES）
+  pane.querySelectorAll('code').forEach(function(el){
+    const txt = el.textContent.trim();
+    if(txt.startsWith('@') && !el.closest('.chem-block')){
+      const smiles = txt.slice(1);
+      const wrapper = document.createElement('span');
+      wrapper.className = 'chem-block';
+      wrapper.style.display = 'inline-block';
+      wrapper.style.verticalAlign = 'middle';
+      const canvas = document.createElement('canvas');
+      canvas.width = 180;
+      canvas.height = 120;
+      wrapper.appendChild(canvas);
+      el.replaceWith(wrapper);
+      try {
+        const drawer = new SmilesDrawer.SvgDrawer({width:180, height:120});
+        SmilesDrawer.parse(smiles, function(tree){
+          drawer.draw(tree, canvas, 'light');
+        }, function(){
+          wrapper.outerHTML = '<code>' + escapeHtml(txt) + '</code>';
+        });
+      } catch(e){}
+    }
+  });
 }
 
 function togglePreview(){
