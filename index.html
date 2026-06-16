@@ -508,74 +508,150 @@ function insertBase64(file){
   });
 }
 
-// ── 下载笔记（PDF）────────────────────────────────────────
-function downloadNote(){
+// ── 下载笔记（PDF，直接下载）─────────────────────────────
+async function downloadNote(){
   const n=notes.find(x=>x.id===currentId);
   if(!n){toast('请先选择笔记');return;}
   const title=document.getElementById('noteTitle').value||'无标题';
   const content=document.getElementById('noteContent').value;
   const htmlBody=mdToHtml(content);
 
-  // Build a clean print window
-  const win=window.open('','_blank');
-  if(!win){toast('请允许弹出窗口后重试');return;}
-  win.document.write(`<!DOCTYPE html>
-<html lang="zh">
-<head>
-<meta charset="UTF-8">
-<title>${escapeHtml(title)}</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif;font-size:14px;line-height:1.8;color:#1a1a1a;padding:32px 40px;max-width:800px;margin:0 auto}
-  h1{font-size:22px;font-weight:700;margin:0 0 16px;padding-bottom:10px;border-bottom:2px solid #e8e8e4}
-  h2{font-size:18px;font-weight:600;margin:20px 0 8px;padding-bottom:4px;border-bottom:1px solid #f0f0ec}
-  h3{font-size:15px;font-weight:600;margin:16px 0 6px;color:#333}
-  h4{font-size:13px;font-weight:600;margin:12px 0 4px;color:#555}
-  p{margin:0 0 10px;color:#333}
-  ul,ol{margin:0 0 10px 22px;color:#333}
-  li{margin-bottom:3px}
-  blockquote{border-left:3px solid #a5b4fc;padding:6px 12px;margin:10px 0;background:#f9f9ff;color:#555;border-radius:0 6px 6px 0}
-  code{background:#f0f0ec;padding:1px 5px;border-radius:4px;font-family:monospace;font-size:13px;color:#d63384}
-  pre{background:#f5f5f0;padding:12px;border-radius:8px;overflow-x:auto;margin:10px 0}
-  pre code{background:none;padding:0;color:#1a1a1a}
-  img{max-width:100%;border-radius:6px;margin:8px 0;display:block}
-  strong{font-weight:600}
-  em{font-style:italic;color:#555}
-  hr{border:none;border-top:1px solid #e8e8e4;margin:16px 0}
-  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
-  th{background:#ede9fe;padding:7px 10px;text-align:left;font-weight:600;border:1px solid #e0defa}
-  td{padding:6px 10px;border:1px solid #e8e8e4}
-  tr:nth-child(even){background:#f9f9ff}
-  .math-block{overflow-x:auto;margin:12px 0;padding:8px;background:#f9f9ff;border-radius:6px;text-align:center}
-  .print-header{margin-bottom:24px}
-  .print-title{font-size:24px;font-weight:700;color:#1a1a1a;margin-bottom:6px}
-  .print-meta{font-size:12px;color:#aaa}
-  @media print{
-    body{padding:20px 28px}
-    @page{margin:1.5cm;size:A4}
+  // 判断是否手机
+  const mobile=isMobile();
+
+  if(mobile){
+    // 手机：仍用打印方式（手机没有直接下载PDF的API）
+    const win=window.open('','_blank');
+    if(!win){toast('请允许弹出窗口后重试');return;}
+    win.document.write(buildPrintHtml(title,htmlBody,true));
+    win.document.close();
+    toast('请在分享菜单中选择「存储为PDF」');
+    return;
   }
-</style>
-</head>
-<body>
-<div class="print-header">
-  <div class="print-title">${escapeHtml(title)}</div>
-  <div class="print-meta">导出时间：${new Date().toLocaleString('zh-CN')}</div>
-</div>
-<hr>
-<div style="margin-top:16px">${htmlBody}</div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"><\/script>
-<script>
-  window.onload=function(){
-    // Small delay to ensure KaTeX loads
-    setTimeout(function(){window.print();},600);
-  };
-  window.onafterprint=function(){window.close();};
-<\/script>
-</body>
-</html>`);
-  win.document.close();
-  toast('正在生成 PDF，请在打印对话框中选择「另存为PDF」');
+
+  // 电脑：用 html2canvas + jsPDF 直接下载
+  toast('正在生成 PDF...');
+
+  try{
+    // 动态加载库
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+
+    // 建一个临时隐藏的渲染容器
+    const container=document.createElement('div');
+    container.style.cssText='position:fixed;left:-9999px;top:0;width:794px;background:#fff;padding:48px 56px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,sans-serif;font-size:14px;line-height:1.8;color:#1a1a1a;box-sizing:border-box;';
+    container.innerHTML=`
+      <div style="margin-bottom:20px">
+        <div style="font-size:22px;font-weight:700;color:#1a1a1a;margin-bottom:6px">${escapeHtml(title)}</div>
+        <div style="font-size:12px;color:#aaa">导出时间：${new Date().toLocaleString('zh-CN')}</div>
+      </div>
+      <hr style="border:none;border-top:1px solid #e8e8e4;margin-bottom:18px">
+      <div class="pdf-body">${htmlBody}</div>`;
+
+    // Inject PDF body styles
+    const style=document.createElement('style');
+    style.textContent=`
+      .pdf-body h1{font-size:20px;font-weight:700;margin:0 0 12px;padding-bottom:8px;border-bottom:2px solid #e8e8e4;color:#1a1a1a}
+      .pdf-body h2{font-size:17px;font-weight:600;margin:18px 0 8px;padding-bottom:4px;border-bottom:1px solid #f0f0ec;color:#1a1a1a}
+      .pdf-body h3{font-size:15px;font-weight:600;margin:14px 0 6px;color:#333}
+      .pdf-body h4{font-size:13px;font-weight:600;margin:10px 0 4px;color:#555}
+      .pdf-body p{margin:0 0 9px;color:#333}
+      .pdf-body ul,.pdf-body ol{margin:0 0 9px 20px;color:#333}
+      .pdf-body li{margin-bottom:3px}
+      .pdf-body blockquote{border-left:3px solid #a5b4fc;padding:6px 12px;margin:10px 0;background:#f9f9ff;color:#555;border-radius:0 4px 4px 0}
+      .pdf-body code{background:#f0f0ec;padding:1px 4px;border-radius:3px;font-family:monospace;font-size:12px;color:#d63384}
+      .pdf-body pre{background:#f5f5f0;padding:10px;border-radius:6px;margin:10px 0;overflow:hidden}
+      .pdf-body pre code{background:none;padding:0;color:#1a1a1a;font-size:12px}
+      .pdf-body img{max-width:100%;border-radius:6px;margin:6px 0;display:block}
+      .pdf-body strong{font-weight:600;color:#1a1a1a}
+      .pdf-body em{font-style:italic;color:#555}
+      .pdf-body hr{border:none;border-top:1px solid #e8e8e4;margin:14px 0}
+      .pdf-body table{width:100%;border-collapse:collapse;margin:10px 0;font-size:12px}
+      .pdf-body th{background:#ede9fe;padding:6px 8px;text-align:left;font-weight:600;border:1px solid #e0defa}
+      .pdf-body td{padding:5px 8px;border:1px solid #e8e8e4}
+      .pdf-body tr:nth-child(even){background:#f9f9ff}
+      .pdf-body .math-block{margin:10px 0;padding:6px;background:#f9f9ff;border-radius:4px;text-align:center}
+    `;
+    container.appendChild(style);
+    document.body.appendChild(container);
+
+    // Render to canvas
+    const canvas=await html2canvas(container,{
+      scale:2,
+      useCORS:true,
+      allowTaint:true,
+      backgroundColor:'#ffffff',
+      logging:false
+    });
+    document.body.removeChild(container);
+
+    // Build PDF
+    const {jsPDF}=window.jspdf;
+    const imgData=canvas.toDataURL('image/jpeg',0.92);
+    const pageW=210; // A4 mm
+    const pageH=297;
+    const margin=0;
+    const imgW=pageW-margin*2;
+    const imgH=(canvas.height*imgW)/canvas.width;
+
+    const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    let yOffset=0;
+    let remaining=imgH;
+
+    while(remaining>0){
+      if(yOffset>0) pdf.addPage();
+      const sliceH=Math.min(pageH,remaining);
+      pdf.addImage(imgData,'JPEG',margin,-(yOffset),imgW,imgH,undefined,'FAST');
+      yOffset+=pageH;
+      remaining-=sliceH;
+    }
+
+    const fileName=(title+'.pdf').replace(/[\\/:*?"<>|]/g,'_');
+    pdf.save(fileName);
+    toast('✓ 已下载 '+fileName);
+
+  } catch(e){
+    console.error('PDF生成失败:',e);
+    toast('PDF生成失败，请重试',3000);
+  }
+}
+
+function loadScript(src){
+  return new Promise((resolve,reject)=>{
+    if(document.querySelector('script[src="'+src+'"]')){resolve();return;}
+    const s=document.createElement('script');
+    s.src=src; s.onload=resolve; s.onerror=reject;
+    document.head.appendChild(s);
+  });
+}
+
+function buildPrintHtml(title,htmlBody,autoprint){
+  return `<!DOCTYPE html>
+<html lang="zh"><head><meta charset="UTF-8"><title>${escapeHtml(title)}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif;font-size:14px;line-height:1.8;color:#1a1a1a;padding:32px 40px;max-width:800px;margin:0 auto}
+h1{font-size:22px;font-weight:700;margin:0 0 14px;padding-bottom:8px;border-bottom:2px solid #e8e8e4}
+h2{font-size:18px;font-weight:600;margin:18px 0 8px;padding-bottom:4px;border-bottom:1px solid #f0f0ec}
+h3{font-size:15px;font-weight:600;margin:14px 0 6px;color:#333}
+h4{font-size:13px;font-weight:600;margin:10px 0 4px;color:#555}
+p{margin:0 0 10px;color:#333}ul,ol{margin:0 0 10px 22px;color:#333}li{margin-bottom:3px}
+blockquote{border-left:3px solid #a5b4fc;padding:6px 12px;margin:10px 0;background:#f9f9ff;color:#555}
+code{background:#f0f0ec;padding:1px 5px;border-radius:4px;font-family:monospace;font-size:12px;color:#d63384}
+pre{background:#f5f5f0;padding:10px;border-radius:6px;margin:10px 0}pre code{background:none;color:#1a1a1a}
+img{max-width:100%;border-radius:6px;margin:6px 0;display:block}strong{font-weight:600}em{font-style:italic;color:#555}
+hr{border:none;border-top:1px solid #e8e8e4;margin:14px 0}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
+th{background:#ede9fe;padding:6px 10px;text-align:left;font-weight:600;border:1px solid #e0defa}
+td{padding:5px 10px;border:1px solid #e8e8e4}tr:nth-child(even){background:#f9f9ff}
+.ph{margin-bottom:20px}.pt{font-size:22px;font-weight:700;margin-bottom:6px}.pm{font-size:12px;color:#aaa}
+@media print{body{padding:20px 28px}@page{margin:1.5cm;size:A4}}
+</style></head><body>
+<div class="ph"><div class="pt">${escapeHtml(title)}</div><div class="pm">导出时间：${new Date().toLocaleString('zh-CN')}</div></div>
+<hr style="margin-bottom:16px">
+<div>${htmlBody}</div>
+${autoprint?'<script>window.onload=function(){setTimeout(function(){window.print()},400)};window.onafterprint=function(){window.close()}<\/script>':''}
+</body></html>`;
 }
 
 // ── Markdown 渲染 ─────────────────────────────────────────
