@@ -67,7 +67,6 @@ select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;back
 .katex-display{margin:0}
 .split-view .edit-pane{flex:1}
 .split-view .preview-pane{display:block;flex:1}
-/* Markdown preview styles */
 .preview-pane h1{font-size:22px;font-weight:700;margin:0 0 12px;color:#1a1a1a;border-bottom:2px solid #e8e8e4;padding-bottom:8px}
 .preview-pane h2{font-size:18px;font-weight:600;margin:20px 0 8px;color:#1a1a1a;border-bottom:1px solid #f0f0ec;padding-bottom:4px}
 .preview-pane h3{font-size:15px;font-weight:600;margin:16px 0 6px;color:#333}
@@ -193,37 +192,27 @@ async function uploadImage(input){
   if(!file) return;
   const prog = document.getElementById('uploadProgress');
   prog.textContent = '上传中...';
-
   const fileName = Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
   const bucket = 'note-images';
-
   try {
     const r = await fetch(STORAGE_API + '/' + bucket + '/' + fileName, {
       method: 'POST',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY,
-        'Content-Type': file.type,
-        'x-upsert': 'true'
-      },
+      headers: {'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':file.type,'x-upsert':'true'},
       body: file
     });
-
     if(r.ok){
       const publicUrl = SUPABASE_URL + '/storage/v1/object/public/' + bucket + '/' + fileName;
       insertImageMd(publicUrl, file.name);
       prog.textContent = '✓ 上传成功';
-      setTimeout(()=>prog.textContent='', 2000);
     } else {
       await insertBase64(file);
       prog.textContent = '✓ 已嵌入（Base64）';
-      setTimeout(()=>prog.textContent='', 2000);
     }
   } catch(e) {
     await insertBase64(file);
     prog.textContent = '✓ 已嵌入';
-    setTimeout(()=>prog.textContent='', 2000);
   }
+  setTimeout(()=>prog.textContent='', 2000);
   input.value = '';
 }
 
@@ -233,9 +222,7 @@ function insertImageMd(url, name){
   const s = ta.selectionStart;
   ta.value = ta.value.slice(0,s) + md + ta.value.slice(s);
   ta.selectionStart = ta.selectionEnd = s + md.length;
-  ta.focus();
-  updatePreview();
-  resetSaveBtn();
+  ta.focus(); updatePreview(); resetSaveBtn();
 }
 
 function insertBase64(file){
@@ -247,10 +234,7 @@ function insertBase64(file){
       const s = ta.selectionStart;
       ta.value = ta.value.slice(0,s) + md + ta.value.slice(s);
       ta.selectionStart = ta.selectionEnd = s + md.length;
-      ta.focus();
-      updatePreview();
-      resetSaveBtn();
-      resolve();
+      ta.focus(); updatePreview(); resetSaveBtn(); resolve();
     };
     reader.readAsDataURL(file);
   });
@@ -258,260 +242,153 @@ function insertBase64(file){
 
 // ── Markdown 渲染 ──────────────────────────────────────
 function mdToHtml(md){
-  let codeBlocks = [];
-  md = md.replace(/```([\s\S]*?)```/g, function(m, c) {
-    codeBlocks.push(c.trim());
-    return 'CODEBLOCK' + (codeBlocks.length-1) + 'END';
-  });
-
-  let inlineCodes = [];
-  md = md.replace(/`([^`]+)`/g, function(m, c) {
-    inlineCodes.push(c);
-    return 'INLINECODE' + (inlineCodes.length-1) + 'END';
-  });
-
-  let mathBlocks = [], mathInlines = [];
-  md = md.replace(/\$\$([\s\S]+?)\$\$/g, function(m, f) {
-    mathBlocks.push(f);
-    return 'MATHBLOCK' + (mathBlocks.length-1) + 'END';
-  });
-  md = md.replace(/\$([^\$\n]+?)\$/g, function(m, f) {
-    mathInlines.push(f);
-    return 'MATHINLINE' + (mathInlines.length-1) + 'END';
-  });
-
-  let tableBlocks = [];
-  md = md.replace(/((?:^\|.+\|\s*\n)+)/gm, function(match) {
-    var lines = match.trim().split('\n').filter(l => l.trim());
-    var result = '<table>';
-    var headerDone = false;
-    for (var i = 0; i < lines.length; i++) {
-      var line = lines[i].trim();
-      if (!line) continue;
-      if (/^\|[\s\-:]+\|$/.test(line.replace(/[^|\-: ]/g,''))) {
-        headerDone = true;
-        continue;
-      }
-      var cells = line.split('|').slice(1,-1).map(c => c.trim());
-      if (!headerDone) {
-        result += '<thead><tr>' + cells.map(c=>'<th>'+c+'</th>').join('') + '</tr></thead><tbody>';
-      } else {
-        result += '<tr>' + cells.map(c=>'<td>'+c+'</td>').join('') + '</tr>';
-      }
+  let codeBlocks=[], inlineCodes=[], mathBlocks=[], mathInlines=[], tableBlocks=[];
+  md = md.replace(/```([\s\S]*?)```/g, (_,c)=>{codeBlocks.push(c.trim());return 'CODEBLOCK'+(codeBlocks.length-1)+'END';});
+  md = md.replace(/`([^`]+)`/g, (_,c)=>{inlineCodes.push(c);return 'INLINECODE'+(inlineCodes.length-1)+'END';});
+  md = md.replace(/\$\$([\s\S]+?)\$\$/g, (_,f)=>{mathBlocks.push(f);return 'MATHBLOCK'+(mathBlocks.length-1)+'END';});
+  md = md.replace(/\$([^\$\n]+?)\$/g, (_,f)=>{mathInlines.push(f);return 'MATHINLINE'+(mathInlines.length-1)+'END';});
+  md = md.replace(/((?:^\|.+\|\s*\n)+)/gm, match=>{
+    var lines=match.trim().split('\n').filter(l=>l.trim());
+    var result='<table>',headerDone=false;
+    for(var i=0;i<lines.length;i++){
+      var line=lines[i].trim();
+      if(!line) continue;
+      if(/^\|[\s\-:]+\|$/.test(line.replace(/[^|\-: ]/g,''))){headerDone=true;continue;}
+      var cells=line.split('|').slice(1,-1).map(c=>c.trim());
+      if(!headerDone){result+='<thead><tr>'+cells.map(c=>'<th>'+c+'</th>').join('')+'</tr></thead><tbody>';}
+      else{result+='<tr>'+cells.map(c=>'<td>'+c+'</td>').join('')+'</tr>';}
     }
-    if (headerDone) result += '</tbody>';
-    result += '</table>';
+    if(headerDone) result+='</tbody>';
+    result+='</table>';
     tableBlocks.push(result);
-    return 'TABLEBLOCK' + (tableBlocks.length-1) + 'END\n';
+    return 'TABLEBLOCK'+(tableBlocks.length-1)+'END\n';
   });
-
-  let h = md
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;');
-
-  h = h.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:8px;margin:8px 0;display:block">');
-  h = h.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color:#4338ca">$1</a>');
-
-  var lines = h.split('\n');
-  var out = [];
-  for (var i = 0; i < lines.length; i++) {
-    var line = lines[i];
-    if (/^#### /.test(line)) { out.push('<h4 style="font-size:13px;font-weight:600;margin:12px 0 4px;color:#555">' + line.slice(5) + '</h4>'); continue; }
-    if (/^### /.test(line)) { out.push('<h3>' + line.slice(4) + '</h3>'); continue; }
-    if (/^## /.test(line)) { out.push('<h2>' + line.slice(3) + '</h2>'); continue; }
-    if (/^# /.test(line)) { out.push('<h1>' + line.slice(2) + '</h1>'); continue; }
-    if (/^---+$/.test(line.trim())) { out.push('<hr>'); continue; }
-    if (/^&gt; /.test(line)) { out.push('<blockquote>' + line.slice(5) + '</blockquote>'); continue; }
-    if (/^\d+\. /.test(line)) { out.push('<li>' + line.replace(/^\d+\. /,'') + '</li>'); continue; }
-    if (/^[-*] /.test(line)) { out.push('<li>' + line.slice(2) + '</li>'); continue; }
-    if (line.trim() === '') { out.push('<br>'); continue; }
-    out.push('<p>' + line + '</p>');
+  let h=md.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  h=h.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,'<img src="$2" alt="$1" style="max-width:100%;border-radius:8px;margin:8px 0;display:block">');
+  h=h.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" style="color:#4338ca">$1</a>');
+  var lines=h.split('\n'),out=[];
+  for(var i=0;i<lines.length;i++){
+    var line=lines[i];
+    if(/^#### /.test(line)){out.push('<h4 style="font-size:13px;font-weight:600;margin:12px 0 4px;color:#555">'+line.slice(5)+'</h4>');continue;}
+    if(/^### /.test(line)){out.push('<h3>'+line.slice(4)+'</h3>');continue;}
+    if(/^## /.test(line)){out.push('<h2>'+line.slice(3)+'</h2>');continue;}
+    if(/^# /.test(line)){out.push('<h1>'+line.slice(2)+'</h1>');continue;}
+    if(/^---+$/.test(line.trim())){out.push('<hr>');continue;}
+    if(/^&gt; /.test(line)){out.push('<blockquote>'+line.slice(5)+'</blockquote>');continue;}
+    if(/^\d+\. /.test(line)){out.push('<li>'+line.replace(/^\d+\. /,'')+'</li>');continue;}
+    if(/^[-*] /.test(line)){out.push('<li>'+line.slice(2)+'</li>');continue;}
+    if(line.trim()===''){out.push('<br>');continue;}
+    out.push('<p>'+line+'</p>');
   }
-
-  h = out.join('\n');
-  h = h.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
-  h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  h = h.replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');
-  h = h.replace(/((?:<li>[\s\S]*?<\/li>\n?)+)/g, '<ul>$1</ul>');
-
-  h = h.replace(/CODEBLOCK(\d+)END/g, function(m, i) {
-    return '<pre><code>' + codeBlocks[i].replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>') + '</code></pre>';
-  });
-  h = h.replace(/INLINECODE(\d+)END/g, function(m, i) {
-    return '<code>' + inlineCodes[i] + '</code>';
-  });
-  h = h.replace(/TABLEBLOCK(\d+)END/g, function(m, i) {
-    return tableBlocks[i];
-  });
-  h = h.replace(/MATHBLOCK(\d+)END/g, function(m, i) {
-    try { return '<div class="math-block">' + katex.renderToString(mathBlocks[i], {displayMode:true, throwOnError:false}) + '</div>'; }
-    catch(e) { return '<div class="math-block">$$' + mathBlocks[i] + '$$</div>'; }
-  });
-  h = h.replace(/MATHINLINE(\d+)END/g, function(m, i) {
-    try { return katex.renderToString(mathInlines[i], {displayMode:false, throwOnError:false}); }
-    catch(e) { return '$' + mathInlines[i] + '$'; }
-  });
+  h=out.join('\n');
+  h=h.replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>');
+  h=h.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+  h=h.replace(/\*([^*\n]+?)\*/g,'<em>$1</em>');
+  h=h.replace(/((?:<li>[\s\S]*?<\/li>\n?)+)/g,'<ul>$1</ul>');
+  h=h.replace(/CODEBLOCK(\d+)END/g,(_,i)=>'<pre><code>'+codeBlocks[i].replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')+'</code></pre>');
+  h=h.replace(/INLINECODE(\d+)END/g,(_,i)=>'<code>'+inlineCodes[i]+'</code>');
+  h=h.replace(/TABLEBLOCK(\d+)END/g,(_,i)=>tableBlocks[i]);
+  h=h.replace(/MATHBLOCK(\d+)END/g,(_,i)=>{try{return '<div class="math-block">'+katex.renderToString(mathBlocks[i],{displayMode:true,throwOnError:false})+'</div>';}catch(e){return '<div class="math-block">$$'+mathBlocks[i]+'$$</div>';}});
+  h=h.replace(/MATHINLINE(\d+)END/g,(_,i)=>{try{return katex.renderToString(mathInlines[i],{displayMode:false,throwOnError:false});}catch(e){return '$'+mathInlines[i]+'$';}});
   return h;
 }
 
 function updatePreview(){
-  const md = document.getElementById('noteContent').value;
-  document.getElementById('previewPane').innerHTML = mdToHtml(md);
+  document.getElementById('previewPane').innerHTML = mdToHtml(document.getElementById('noteContent').value);
 }
 
 function togglePreview(){
-  const pp = document.getElementById('previewPane');
-  const ep = document.getElementById('editPane');
-  const btn = document.getElementById('previewBtn');
-  const sb = document.getElementById('splitBtn');
-  if(viewMode === 'preview'){
-    viewMode = 'edit';
-    pp.classList.remove('show'); pp.style.display='none';
-    ep.style.display='block';
-    btn.classList.remove('active'); btn.textContent='👁 预览';
-    document.getElementById('editorArea').classList.remove('split-view');
-    sb.style.display='';
+  const pp=document.getElementById('previewPane'),ep=document.getElementById('editPane');
+  const btn=document.getElementById('previewBtn'),sb=document.getElementById('splitBtn');
+  if(viewMode==='preview'){
+    viewMode='edit';pp.classList.remove('show');pp.style.display='none';ep.style.display='block';
+    btn.classList.remove('active');btn.textContent='👁 预览';
+    document.getElementById('editorArea').classList.remove('split-view');sb.style.display='';
   } else {
-    viewMode = 'preview';
-    updatePreview();
-    ep.style.display='none';
-    pp.classList.add('show'); pp.style.display='block';
-    btn.classList.add('active'); btn.textContent='✏ 编辑';
-    document.getElementById('editorArea').classList.remove('split-view');
-    sb.style.display='none';
+    viewMode='preview';updatePreview();ep.style.display='none';pp.classList.add('show');pp.style.display='block';
+    btn.classList.add('active');btn.textContent='✏ 编辑';
+    document.getElementById('editorArea').classList.remove('split-view');sb.style.display='none';
   }
 }
 
 function toggleSplit(){
-  const area = document.getElementById('editorArea');
-  const pp = document.getElementById('previewPane');
-  const ep = document.getElementById('editPane');
-  const btn = document.getElementById('splitBtn');
-  const pb = document.getElementById('previewBtn');
-  if(viewMode === 'split'){
-    viewMode = 'edit';
-    area.classList.remove('split-view');
-    area.style.display='flex'; area.style.flexDirection='column';
-    ep.style.display='block'; ep.style.flex='1';
-    pp.classList.remove('show'); pp.style.display='none';
-    btn.classList.remove('active'); btn.textContent='⬛ 分屏';
-    pb.style.display='';
+  const area=document.getElementById('editorArea'),pp=document.getElementById('previewPane'),ep=document.getElementById('editPane');
+  const btn=document.getElementById('splitBtn'),pb=document.getElementById('previewBtn');
+  if(viewMode==='split'){
+    viewMode='edit';area.classList.remove('split-view');area.style.display='flex';area.style.flexDirection='column';
+    ep.style.display='block';ep.style.flex='1';pp.classList.remove('show');pp.style.display='none';
+    btn.classList.remove('active');btn.textContent='⬛ 分屏';pb.style.display='';
   } else {
-    viewMode = 'split';
-    updatePreview();
-    area.classList.add('split-view');
-    area.style.display='flex'; area.style.flexDirection='row';
-    ep.style.display='block'; ep.style.flex='1';
-    pp.classList.add('show'); pp.style.display='block'; pp.style.flex='1';
-    btn.classList.add('active'); btn.textContent='⬛ 退出分屏';
-    pb.style.display='none';
+    viewMode='split';updatePreview();area.classList.add('split-view');area.style.display='flex';area.style.flexDirection='row';
+    ep.style.display='block';ep.style.flex='1';pp.classList.add('show');pp.style.display='block';pp.style.flex='1';
+    btn.classList.add('active');btn.textContent='⬛ 退出分屏';pb.style.display='none';
   }
 }
 
 // ── 数据操作 ────────────────────────────────────────────
 async function fetchNotes(){
   document.getElementById('noteItems').innerHTML='<div class="loading">加载中...</div>';
-  const r=await fetch(API+'?order=updated_at.desc',{headers:{...HEADERS,'Prefer':'return=representation'}});
-  notes=await r.json();
-  if(!Array.isArray(notes)) notes=[];
+  try {
+    const r=await fetch(API+'?order=updated_at.desc',{headers:{...HEADERS,'Prefer':'return=representation'}});
+    notes=await r.json();
+    if(!Array.isArray(notes)) notes=[];
+  } catch(e) {
+    notes=[];
+    toast('加载失败，请检查网络', 2000);
+  }
   renderAll();
 }
 
-const CAT_ICONS = {
-  '全部':'📋','有机化学':'⚗️','无机化学':'🧪','分析化学':'🔬',
-  '物理化学':'⚡','编程':'💻','数学':'📐','英语':'🌐',
-  '读书笔记':'📖','其他':'📁'
-};
+const CAT_ICONS={'全部':'📋','有机化学':'⚗️','无机化学':'🧪','分析化学':'🔬','物理化学':'⚡','编程':'💻','数学':'📐','英语':'🌐','读书笔记':'📖','其他':'📁'};
 
-function cats(){
-  const c=['全部'];
-  notes.forEach(n=>{if(n.category&&!c.includes(n.category))c.push(n.category)});
-  return c;
-}
-function catCount(c){return c==='全部'?notes.length:notes.filter(n=>n.category===c).length}
-function catIcon(c){return CAT_ICONS[c]||'📁'}
-
-function renderAll(){renderCats();renderList()}
+function cats(){const c=['全部'];notes.forEach(n=>{if(n.category&&!c.includes(n.category))c.push(n.category)});return c;}
+function catCount(c){return c==='全部'?notes.length:notes.filter(n=>n.category===c).length;}
+function catIcon(c){return CAT_ICONS[c]||'📁';}
+function renderAll(){renderCats();renderList();}
 
 function renderCats(){
   document.getElementById('catList').innerHTML=cats().map(c=>`
     <div class="cat-item${c===currentCat?' active':''}">
-      <div class="cat-item-left" onclick="selectCat('${c.replace(/'/g, "\\'")}')">
+      <div class="cat-item-left" onclick="selectCat('${c.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">
         ${catIcon(c)} <span>${c}</span>
         <span class="cat-count">${catCount(c)}</span>
       </div>
-      ${c !== '全部' ? `<button class="cat-delete-btn" onclick="deleteCategory('${c.replace(/'/g, "\\'")}')" title="删除分类「${c}」及其中所有笔记">🗑</button>` : ''}
+      ${c!=='全部'?`<button class="cat-delete-btn" onclick="deleteCategory('${c.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')" title="删除分类「${c}」及其中所有笔记">🗑</button>`:''}
     </div>`).join('');
 }
 
-// 一键删除分类及其所有笔记（核心新增函数）
-window.deleteCategory = async function(categoryName) {
-  if(categoryName === '全部') {
-    toast('不能删除「全部」虚拟分类', 1500);
-    return;
-  }
-  const notesToDelete = notes.filter(n => n.category === categoryName);
-  const count = notesToDelete.length;
-  if(count === 0) {
-    toast(`分类「${categoryName}」下没有笔记，可直接忽略`, 1500);
-    // 如果分类下无笔记但依然存在于列表中？理论上category是由现有笔记动态生成的，但为了完整，重新拉取即可
-    renderAll();
-    return;
-  }
-  
-  const confirmMsg = `⚠️ 确定要删除分类「${categoryName}」吗？\n该分类下的 ${count} 条笔记将被永久删除！\n此操作不可恢复。`;
-  if(!confirm(confirmMsg)) return;
-  
-  // 显示加载提示
-  toast(`正在删除分类「${categoryName}」及 ${count} 条笔记...`, 1800);
-  
-  // 逐条删除笔记（因为 Supabase 可能不支持批量删除带过滤条件的语句，但我们可以用 id 列表批量删除更高效）
-  // 方案: 收集所有待删除笔记的id，然后一次性 DELETE 使用 or 条件。但为了避免复杂，采用批量过滤category直接调用API删除更简洁
-  // 直接通过 category 过滤删除（注意SQL注入防范，但 supabase 使用参数化，直接使用 eq过滤是安全的）
+window.deleteCategory = async function(categoryName){
+  if(categoryName==='全部'){toast('不能删除「全部」虚拟分类',1500);return;}
+  const count=notes.filter(n=>n.category===categoryName).length;
+  if(!confirm(`⚠️ 确定要删除分类「${categoryName}」吗？\n该分类下的 ${count} 条笔记将被永久删除！\n此操作不可恢复。`)) return;
+  toast(`正在删除分类「${categoryName}」及 ${count} 条笔记...`,1800);
   try {
-    const deleteUrl = API + '?category=eq.' + encodeURIComponent(categoryName);
-    const res = await fetch(deleteUrl, {
-      method: 'DELETE',
-      headers: HEADERS
-    });
-    
-    if(res.ok) {
-      // 从本地 notes 数组中移除这些笔记
-      notes = notes.filter(n => n.category !== categoryName);
-      // 如果当前正在查看的笔记刚好属于被删除的分类，关闭编辑器
-      if(currentId) {
-        const currentNote = notes.find(n => n.id === currentId);
-        if(!currentNote) {
-          currentId = null;
-          document.getElementById('emptyState').style.display = '';
-          document.getElementById('editorContent').style.display = 'none';
-        }
+    const res=await fetch(API+'?category=eq.'+encodeURIComponent(categoryName),{method:'DELETE',headers:HEADERS});
+    if(res.ok){
+      notes=notes.filter(n=>n.category!==categoryName);
+      if(currentId&&!notes.find(n=>n.id===currentId)){
+        currentId=null;
+        document.getElementById('emptyState').style.display='';
+        document.getElementById('editorContent').style.display='none';
       }
-      // 如果当前选中的分类正是被删除的分类，切换到「全部」
-      if(currentCat === categoryName) {
-        currentCat = '全部';
-      }
+      if(currentCat===categoryName) currentCat='全部';
       renderAll();
-      toast(`✅ 已删除分类「${categoryName}」及 ${count} 条笔记`, 2500);
+      toast(`✅ 已删除分类「${categoryName}」及 ${count} 条笔记`,2500);
     } else {
-      console.error(await res.text());
-      toast(`删除失败: 服务器错误`, 2000);
+      toast('删除失败: 服务器错误',2000);
     }
-  } catch(err) {
-    console.error(err);
-    toast(`删除出错: ${err.message}`, 2000);
+  } catch(err){
+    toast('删除出错: '+err.message,2000);
   }
 };
 
-function selectCat(c){currentCat=c;document.getElementById('listTitle').textContent=c;renderCats();renderList()}
-
-function filtered(){return currentCat==='全部'?notes:notes.filter(n=>n.category===currentCat)}
+function selectCat(c){currentCat=c;document.getElementById('listTitle').textContent=c;renderCats();renderList();}
+function filtered(){return currentCat==='全部'?notes:notes.filter(n=>n.category===currentCat);}
 
 function renderList(){
   const q=document.getElementById('searchInput').value.trim().toLowerCase();
   let list=filtered();
-  if(q)list=list.filter(n=>(n.title||'').toLowerCase().includes(q)||(n.content||'').toLowerCase().includes(q)||((n.tags||[]).join(' ')).toLowerCase().includes(q));
+  if(q) list=list.filter(n=>(n.title||'').toLowerCase().includes(q)||(n.content||'').toLowerCase().includes(q)||((n.tags||[]).join(' ')).toLowerCase().includes(q));
   document.getElementById('listCount').textContent=list.length+'篇';
   document.getElementById('noteItems').innerHTML=list.length?list.map(n=>`
     <div class="note-item${n.id===currentId?' active':''}" onclick="openNote('${n.id}')">
@@ -526,48 +403,42 @@ function renderList(){
 
 function escapeHtml(str){
   if(!str) return '';
-  return str.replace(/[&<>]/g, function(m){
-    if(m === '&') return '&amp;';
-    if(m === '<') return '&lt;';
-    if(m === '>') return '&gt;';
-    return m;
-  });
+  return str.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 
 function openNote(id){
   currentId=id;
   const n=notes.find(x=>x.id===id);
-  if(!n)return;
+  if(!n) return;
   document.getElementById('emptyState').style.display='none';
   const ec=document.getElementById('editorContent');
-  ec.style.display='flex'; ec.style.flexDirection='column';
+  ec.style.display='flex';ec.style.flexDirection='column';
   document.getElementById('noteTitle').value=n.title||'';
   document.getElementById('noteContent').value=n.content||'';
   document.getElementById('catSelect').value=n.category||'';
   renderEditorTags(n.tags||[]);
-  updateCount();
-  resetSaveBtn();
+  updateCount();resetSaveBtn();
   if(viewMode==='preview'||viewMode==='split') updatePreview();
   renderList();
 }
 
 function renderEditorTags(tags){
   document.getElementById('editorTags').innerHTML=
-    tags.map(t=>`<span class="etag">${escapeHtml(t)}<span class="etag-rm" onclick="removeTag('${t.replace(/'/g, "\\'")}')">×</span></span>`).join('')+
+    tags.map(t=>`<span class="etag">${escapeHtml(t)}<span class="etag-rm" onclick="removeTag('${t.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">×</span></span>`).join('')+
     `<input class="tag-input" placeholder="+ 添加标签" id="tagInput" onkeydown="addTag(event)">`;
 }
 
-function removeTag(t){const n=notes.find(x=>x.id===currentId);if(!n)return;n.tags=(n.tags||[]).filter(x=>x!==t);renderEditorTags(n.tags)}
+function removeTag(t){const n=notes.find(x=>x.id===currentId);if(!n)return;n.tags=(n.tags||[]).filter(x=>x!==t);renderEditorTags(n.tags);}
 function addTag(e){
-  if(e.key!=='Enter')return;
-  const v=e.target.value.trim();if(!v)return;
+  if(e.key!=='Enter') return;
+  const v=e.target.value.trim();if(!v) return;
   const n=notes.find(x=>x.id===currentId);
-  if(n){n.tags=n.tags||[];if(!n.tags.includes(v))n.tags.push(v);renderEditorTags(n.tags)}
+  if(n){n.tags=n.tags||[];if(!n.tags.includes(v))n.tags.push(v);renderEditorTags(n.tags);}
   e.target.value='';
 }
 
-function updateCount(){document.getElementById('wordCount').textContent=(document.getElementById('noteContent').value||'').length+' 字'}
-function resetSaveBtn(){const b=document.getElementById('saveBtn');b.textContent='保存';b.className='save-btn'}
+function updateCount(){document.getElementById('wordCount').textContent=(document.getElementById('noteContent').value||'').length+' 字';}
+function resetSaveBtn(){const b=document.getElementById('saveBtn');b.textContent='保存';b.className='save-btn';}
 
 document.getElementById('noteTitle').oninput=resetSaveBtn;
 document.getElementById('noteContent').oninput=()=>{
@@ -575,32 +446,71 @@ document.getElementById('noteContent').oninput=()=>{
   if(viewMode==='preview'||viewMode==='split') updatePreview();
 };
 
+// ── 保存笔记（修复新建逻辑）──────────────────────────────
 async function saveNote(){
   const n=notes.find(x=>x.id===currentId);
-  if(!n)return;
-  n.title=document.getElementById('noteTitle').value||'无标题';
+  if(!n) return;
+
+  n.title=document.getElementById('noteTitle').value.trim()||'无标题';
   n.content=document.getElementById('noteContent').value;
-  n.category=document.getElementById('catSelect').value;
+  n.category=document.getElementById('catSelect').value||'其他';
   n.updated_at=new Date().toISOString();
-  const isNew=!n._saved;
-  const method=isNew?'POST':'PATCH';
-  const url=isNew?API:API+'?id=eq.'+n.id;
-  const body=isNew
-    ?{title:n.title,content:n.content,category:n.category,tags:n.tags}
-    :{title:n.title,content:n.content,category:n.category,tags:n.tags,updated_at:n.updated_at};
-  const r=await fetch(url,{method,headers:{...HEADERS,'Prefer':'return=representation'},body:JSON.stringify(body)});
-  const result=await r.json();
-  if(isNew&&Array.isArray(result)&&result[0]){n.id=result[0].id;}
-  n._saved=true;
-  const b=document.getElementById('saveBtn');b.textContent='✓ 已保存';b.className='save-btn saved';
-  toast('保存成功');renderAll();
+
+  const saveBtn=document.getElementById('saveBtn');
+  saveBtn.textContent='保存中...';saveBtn.disabled=true;
+
+  try {
+    if(!n._saved){
+      // 新建：POST，不带本地临时 id
+      const body={title:n.title,content:n.content,category:n.category,tags:n.tags||[],updated_at:n.updated_at};
+      const r=await fetch(API,{
+        method:'POST',
+        headers:{...HEADERS,'Prefer':'return=representation'},
+        body:JSON.stringify(body)
+      });
+      if(!r.ok){
+        const err=await r.text();
+        throw new Error(err);
+      }
+      const result=await r.json();
+      // 用服务器返回的真实 id 替换本地临时 id
+      if(Array.isArray(result)&&result[0]){
+        const oldId=n.id;
+        n.id=result[0].id;
+        n.updated_at=result[0].updated_at||n.updated_at;
+        if(currentId===oldId) currentId=n.id;
+      }
+      n._saved=true;
+    } else {
+      // 更新：PATCH
+      const body={title:n.title,content:n.content,category:n.category,tags:n.tags||[],updated_at:n.updated_at};
+      const r=await fetch(API+'?id=eq.'+n.id,{
+        method:'PATCH',
+        headers:{...HEADERS,'Prefer':'return=representation'},
+        body:JSON.stringify(body)
+      });
+      if(!r.ok){
+        const err=await r.text();
+        throw new Error(err);
+      }
+    }
+    saveBtn.textContent='✓ 已保存';saveBtn.className='save-btn saved';saveBtn.disabled=false;
+    toast('保存成功');
+    renderAll();
+  } catch(e){
+    console.error('保存失败:', e);
+    saveBtn.textContent='保存';saveBtn.className='save-btn';saveBtn.disabled=false;
+    toast('保存失败: '+e.message, 3000);
+  }
 }
 
 async function deleteNote(){
-  if(!currentId)return;
-  if(!confirm('确定删除这条笔记？'))return;
+  if(!currentId) return;
+  if(!confirm('确定删除这条笔记？')) return;
   const n=notes.find(x=>x.id===currentId);
-  if(n&&n._saved)await fetch(API+'?id=eq.'+currentId,{method:'DELETE',headers:HEADERS});
+  if(n&&n._saved){
+    await fetch(API+'?id=eq.'+currentId,{method:'DELETE',headers:HEADERS});
+  }
   notes=notes.filter(x=>x.id!==currentId);currentId=null;
   document.getElementById('emptyState').style.display='';
   document.getElementById('editorContent').style.display='none';
@@ -608,10 +518,19 @@ async function deleteNote(){
 }
 
 document.getElementById('newBtn').onclick=()=>{
-  const n={id:'new-'+Date.now(),title:'',content:'',
+  const n={
+    id:'tmp-'+Date.now(),
+    title:'',
+    content:'',
     category:currentCat==='全部'?'其他':currentCat,
-    tags:[],updated_at:new Date().toISOString(),_saved:false};
-  notes.unshift(n);renderList();openNote(n.id);
+    tags:[],
+    updated_at:new Date().toISOString(),
+    _saved:false
+  };
+  notes.unshift(n);
+  renderList();
+  openNote(n.id);
+  setTimeout(()=>document.getElementById('noteTitle').focus(), 50);
 };
 
 document.getElementById('searchInput').oninput=renderList;
@@ -622,7 +541,7 @@ function ins(pre,suf){
   const sel=ta.value.slice(s,e);
   ta.value=ta.value.slice(0,s)+pre+sel+suf+ta.value.slice(e);
   ta.selectionStart=s+pre.length;ta.selectionEnd=s+pre.length+sel.length;
-  ta.focus();if(viewMode==='split'||viewMode==='preview')updatePreview();
+  ta.focus();if(viewMode==='split'||viewMode==='preview') updatePreview();
 }
 function insLine(pre){
   const ta=document.getElementById('noteContent');
@@ -630,7 +549,7 @@ function insLine(pre){
   const start=ta.value.lastIndexOf('\n',s-1)+1;
   ta.value=ta.value.slice(0,start)+pre+ta.value.slice(start);
   ta.selectionStart=ta.selectionEnd=s+pre.length;
-  ta.focus();if(viewMode==='split'||viewMode==='preview')updatePreview();
+  ta.focus();if(viewMode==='split'||viewMode==='preview') updatePreview();
 }
 
 fetchNotes();
