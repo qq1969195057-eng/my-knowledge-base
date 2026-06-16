@@ -511,7 +511,10 @@ function formulaToSmiles(raw){
     // 羰基类
     [/CHO/g,         'C=O'],       // 醛基
     [/COOH/g,        'C(=O)O'],    // 羧基
+    // 酯（通用R=乙基）
+    [/RCOO/g,        'CCOC(=O)'],  // 酯 RCOO- (R=乙基)
     [/COOR/g,        'C(=O)OCC'], // 酯（通用R=乙基）
+    [/RCOOH/g,       'CCC(=O)O'], // 羧酸通式 (R=乙基)
     [/COCl/g,        'C(=O)Cl'],   // 酰氯
     [/CONH2/g,       'C(=O)N'],    // 酰胺
     [/CO/g,          'C=O'],       // 酮/羰基（放在COOH后面）
@@ -584,6 +587,12 @@ function formulaToSmiles(raw){
     '(CH3CO)2O':      'CC(=O)OC(=O)C',
     'HCHO':           'C=O',
     'HCOOH':          'OC=O',
+    // 通式（R基用乙基CC代替）
+    'RCOO':           'CCOC(=O)',   // 酯基通式
+    'RCOOH':          'CCC(=O)O',  // 羧酸通式
+    'RCHO':           'CCC=O',     // 醛通式
+    'RCOH':           'CCO',       // 醇通式
+    'RCOCH3':         'CCC(=O)C',  // 甲酮通式
     'C2H4':           'C=C',
     'C2H2':           'C#C',
     'CH3CH2CHO':      'CCC=O',
@@ -611,9 +620,13 @@ function formulaToSmiles(raw){
 
   // 尝试用片段转换（简化，不能处理所有情况）
   var result = cleaned;
+  // 先处理 R 基团（通用有机基，用乙基 CC 代替）
+  result = result.replace(/\bR\b/g, 'CC');
   // 先处理苯基
   result = result.replace(/C6H5/g, 'Ph');
   // 处理常见结构
+  result = result.replace(/RCOOH/g, 'CCC(=O)O');
+  result = result.replace(/RCOO/g, 'CCOC(=O)');
   result = result.replace(/COOH/g, 'C(=O)O');
   result = result.replace(/CHO/g,  'C=O');
   result = result.replace(/COCl/g, 'C(=O)Cl');
@@ -629,7 +642,7 @@ function formulaToSmiles(raw){
   result = result.replace(/Cl/g,   'Cl');
   result = result.replace(/Ph/g,   'c1ccccc1');
   result = result.replace(/[0-9]+/g,'');
-  result = result.replace(/[HhRrZzSs]/g,'');
+  result = result.replace(/[HhZzSs]/g,'');  // 注意：不再删除R，已在前面处理
   return result || null;
 }
 
@@ -651,9 +664,10 @@ function renderChemStructures(){
     }
   });
 
-  // 方式3：自动识别段落/列表中独立出现的化学式文字
-  // 匹配如：C₆H₅CH₂CH₂COCH₃ 或 CH₃COOH 等（含大写字母数字下标，长度≥4）
-  var CHEM_PATTERN = /(?<![a-zA-Z])([A-Z][A-Za-z0-9₀₁₂₃₄₅₆₇₈₉\(\)=≡\+\-]{3,})(?![a-zA-Z])/g;
+  // 方式3：自动识别段落/列表中独立出现的有机化学式文字
+  // 只匹配含 C 且有典型有机结构特征的式子（CH、COOH、C6H5 等），避免干扰无机笔记
+  // 必须含有机碳骨架特征：CH2/CH3/C6H5/COOH/CHO 等
+  var CHEM_PATTERN = /(?<![a-zA-Z\d])((?:C[0-9₀₁₂₃₄₅₆₇₈₉]*H|(?:C6H5)|(?:CH[23]?))[A-Za-z0-9₀₁₂₃₄₅₆₇₈₉\(\)=≡\+\-]{2,})(?![a-zA-Z])/g;
 
   // 只扫描 <p> <li> <td> <th> 里的文字节点
   var containers = pane.querySelectorAll('p, li, td, th');
@@ -714,7 +728,7 @@ function renderChemStructures(){
         // 异步渲染
         (function(cv, sm, fw){
           try{
-            var drawer = new SmilesDrawer.SvgDrawer({width:200,height:130,
+            var drawer = new SmilesDrawer.CanvasDrawer({width:200,height:130,
               themes:{light:{C:'#1a1a1a',O:'#dc2626',N:'#4f46e5',S:'#d97706',
                 F:'#059669',Cl:'#059669',Br:'#7c3aed',I:'#7c3aed',H:'#888',background:'#f9f9ff'}}});
             SmilesDrawer.parse(sm, function(tree){
@@ -746,7 +760,8 @@ function drawSmiles(smiles, targetEl, w, h, inline){
   wrapper.appendChild(canvas);
   targetEl.replaceWith ? targetEl.replaceWith(wrapper) : targetEl.parentNode.replaceChild(wrapper, targetEl);
   try{
-    var drawer = new SmilesDrawer.SvgDrawer({width:w, height:h,
+    // 使用 CanvasDrawer（不是 SvgDrawer）才能正确绘制到 <canvas>
+    var drawer = new SmilesDrawer.CanvasDrawer({width:w, height:h,
       themes:{light:{C:'#1a1a1a',O:'#dc2626',N:'#4f46e5',S:'#d97706',
         F:'#059669',Cl:'#059669',Br:'#7c3aed',I:'#7c3aed',H:'#888',background:'#f9f9ff'}}});
     SmilesDrawer.parse(smiles, function(tree){
