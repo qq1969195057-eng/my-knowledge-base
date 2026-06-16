@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<!-- 新增：SmilesDrawer 化学结构渲染库 -->
 <script src="https://unpkg.com/smiles-drawer@2.1.7/dist/smiles-drawer.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -152,6 +153,7 @@ select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;back
         </label>
         <span id="uploadProgress" class="upload-progress"></span>
         <span style="flex:1"></span>
+        <!-- 新增下载按钮 -->
         <button class="download-btn" onclick="downloadPDF()" title="下载为PDF">⬇ 下载PDF</button>
         <button class="tb-btn" id="previewBtn" onclick="togglePreview()">👁 预览</button>
         <button class="tb-btn" id="splitBtn" onclick="toggleSplit()">⬛ 分屏</button>
@@ -437,94 +439,593 @@ function mdToHtml(md){
   var out = [];
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i];
-    if (/^#### /.test(line)) {
-      out.push('<h4 style="font-size:13px;font-weight:600;margin:12px 0 4px;color:#444">' + line.slice(5) + '</h4>');
-    } else if (/^### /.test(line)) {
-      out.push('<h3 style="font-size:15px;font-weight:600;margin:16px 0 6px;color:#333">' + line.slice(4) + '</h3>');
-    } else if (/^## /.test(line)) {
-      out.push('<h2 style="font-size:18px;font-weight:600;margin:20px 0 8px;color:#1a1a1a;border-bottom:1px solid #f0f0ec;padding-bottom:4px">' + line.slice(3) + '</h2>');
-    } else if (/^# /.test(line)) {
-      out.push('<h1 style="font-size:22px;font-weight:700;margin:0 0 12px;color:#1a1a1a;border-bottom:2px solid #e8e8e4;padding-bottom:8px">' + line.slice(2) + '</h1>');
-    } else if (/^> /.test(line)) {
-      out.push('<blockquote style="border-left:3px solid #a5b4fc;padding:6px 12px;margin:10px 0;background:#f9f9ff;color:#555">' + line.slice(2) + '</blockquote>');
-    } else if (/^- /.test(line)) {
-      out.push('<li style="margin-bottom:3px;margin-left:20px">' + line.slice(2) + '</li>');
-    } else if (/^\d+\. /.test(line)) {
-      out.push('<li style="margin-bottom:3px;margin-left:20px">' + line.slice(line.indexOf('.')+2) + '</li>');
-    } else if (/^---/.test(line)) {
-      out.push('<hr style="border:none;border-top:1px solid #e8e8e4;margin:16px 0">');
-    } else if (line.trim()) {
-      out.push('<p style="margin:0 0 10px;line-height:1.8;color:#333">' + line + '</p>');
-    } else {
-      out.push('');
-    }
+    if (/^#### /.test(line)) { out.push('<h4 style="font-size:13px;font-weight:600;margin:12px 0 4px;color:#555">' + line.slice(5) + '</h4>'); continue; }
+    if (/^### /.test(line)) { out.push('<h3>' + line.slice(4) + '</h3>'); continue; }
+    if (/^## /.test(line)) { out.push('<h2>' + line.slice(3) + '</h2>'); continue; }
+    if (/^# /.test(line)) { out.push('<h1>' + line.slice(2) + '</h1>'); continue; }
+    if (/^---+$/.test(line.trim())) { out.push('<hr>'); continue; }
+    if (/^&gt; /.test(line)) { out.push('<blockquote>' + line.slice(5) + '</blockquote>'); continue; }
+    if (/^\d+\. /.test(line)) { out.push('<li>' + line.replace(/^\d+\. /,'') + '</li>'); continue; }
+    if (/^[-*] /.test(line)) { out.push('<li>' + line.slice(2) + '</li>'); continue; }
+    if (line.trim() === '') { out.push('<br>'); continue; }
+    out.push('<p>' + line + '</p>');
   }
+
   h = out.join('\n');
+  h = h.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+  h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');
+  h = h.replace(/((?:<li>[\s\S]*?<\/li>\n?)+)/g, '<ul>$1</ul>');
 
-  // 还原
-  tableBlocks.forEach((b, i) => { h = h.replace('TABLEBLOCK' + i + 'END', b); });
-  mathBlocks.forEach((b, i) => { h = h.replace('MATHBLOCK' + i + 'END', '<div class="math-block">$$' + b + '$$</div>'); });
-  mathInlines.forEach((b, i) => { h = h.replace('MATHINLINE' + i + 'END', '$' + b + '$'); });
-  inlineCodes.forEach((b, i) => { h = h.replace('INLINECODE' + i + 'END', '<code>' + b + '</code>'); });
-
-  codeBlocks.forEach((b, i) => {
-    if (b.startsWith('SMILES') || b.startsWith('smiles')) {
-      const smilesStr = b.replace(/^(SMILES|smiles)[\s\n]*/, '').trim();
-      h = h.replace('CODEBLOCK' + i + 'END', '<div class="chem-block" data-smiles="' + smilesStr + '"></div>');
-    } else {
-      h = h.replace('CODEBLOCK' + i + 'END', '<pre><code>' + b + '</code></pre>');
-    }
+  h = h.replace(/CODEBLOCK(\d+)END/g, function(m, i) {
+    return '<pre><code>' + codeBlocks[i].replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>') + '</code></pre>';
   });
-
+  h = h.replace(/INLINECODE(\d+)END/g, function(m, i) {
+    return '<code>' + inlineCodes[i] + '</code>';
+  });
+  h = h.replace(/TABLEBLOCK(\d+)END/g, function(m, i) {
+    return tableBlocks[i];
+  });
+  h = h.replace(/MATHBLOCK(\d+)END/g, function(m, i) {
+    try { return '<div class="math-block">' + katex.renderToString(mathBlocks[i], {displayMode:true, throwOnError:false}) + '</div>'; }
+    catch(e) { return '<div class="math-block">$$' + mathBlocks[i] + '$$</div>'; }
+  });
+  h = h.replace(/MATHINLINE(\d+)END/g, function(m, i) {
+    try { return katex.renderToString(mathInlines[i], {displayMode:false, throwOnError:false}); }
+    catch(e) { return '$' + mathInlines[i] + '$'; }
+  });
   return h;
 }
 
-function escapeHtml(str) {
-  if(!str) return '';
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function updatePreview(){
+  const md = document.getElementById('noteContent').value;
+  document.getElementById('previewPane').innerHTML = mdToHtml(md);
+  // 新增：渲染化学结构（SMILES语法：```smiles ... ``` 或 @smiles{...}）
+  renderChemStructures();
 }
-</script>
 
-<script>
-(function() {
-  const originalUpdatePreview = window.updatePreview;
-  window.updatePreview = function() {
-    if (typeof originalUpdatePreview === 'function') {
-      originalUpdatePreview();
-    } else {
-      const pane = document.getElementById('previewPane');
-      const ta = document.getElementById('noteContent');
-      if (pane && ta) {
-        pane.innerHTML = mdToHtml(ta.value);
+// ══════════════════════════════════════════════════════════
+// 化学式文字 → SMILES 转换器 + 结构渲染
+// 支持：C₆H₅CH₂CH₂COCH₃ 等有机化学式文字自动识别
+// ══════════════════════════════════════════════════════════
+
+// ── 下标数字还原（₀₁₂₃₄₅₆₇₈₉ → 0123456789）
+function normSub(s){
+  return s.replace(/[₀₁₂₃₄₅₆₇₈₉]/g,function(c){
+    return '0123456789'['₀₁₂₃₄₅₆₇₈₉'.indexOf(c)];
+  });
+}
+
+// ── 化学式文字 → SMILES 转换核心函数
+function formulaToSmiles(raw){
+  // 先还原下标
+  var s = normSub(raw.trim());
+
+  // ── 常见结构片段直接映射表（优先匹配，从长到短）
+  var FRAGMENTS = [
+    // 苯环相关
+    [/C6H5/g,        'c1ccccc1'],
+    [/Ph(?=[^a]|$)/g,'c1ccccc1'],
+    // 羟基
+    [/OH/g,          'O'],
+    // 羰基类
+    [/CHO/g,         'C=O'],       // 醛基
+    [/COOH/g,        'C(=O)O'],    // 羧基
+    [/COOR/g,        'C(=O)OCC'], // 酯（通用R=乙基）
+    [/COCl/g,        'C(=O)Cl'],   // 酰氯
+    [/CONH2/g,       'C(=O)N'],    // 酰胺
+    [/CO/g,          'C=O'],       // 酮/羰基（放在COOH后面）
+    // 卤素
+    [/Br/g,          'Br'],
+    [/Cl/g,          'Cl'],
+    [/\bF\b/g,       'F'],
+    [/\bI\b/g,       'I'],
+    // 常见基团
+    [/CH3/g,         'C'],
+    [/CH2/g,         'C'],
+    [/CH(?=[^0-9O]|$)/g, 'C'],
+    [/C(?=[^a-zA-Z0-9(]|$)/g, 'C'],
+    // 不饱和键
+    [/=CH2/g,        '=C'],
+    [/=CH/g,         '=C'],
+    [/≡/g,           '#'],
+    [/=/g,           '='],
+    // 氨基
+    [/NH2/g,         'N'],
+    [/NH/g,          'N'],
+    [/\bN\b/g,       'N'],
+    // 数字（去掉，已合并到片段中）
+    [/[0-9]+/g,      ''],
+    // 括号保留
+    // 去掉其余字母
+    [/[HRSZ]/g,      ''],
+  ];
+
+  // ── 常见完整有机物直接映射（优先级最高）
+  var KNOWN = {
+    // 苯及苯基衍生物
+    'C6H6':           'c1ccccc1',
+    'C6H5CH3':        'Cc1ccccc1',
+    'C6H5OH':         'Oc1ccccc1',
+    'C6H5CHO':        'O=Cc1ccccc1',
+    'C6H5COOH':       'OC(=O)c1ccccc1',
+    'C6H5NH2':        'Nc1ccccc1',
+    'C6H5Cl':         'Clc1ccccc1',
+    'C6H5Br':         'Brc1ccccc1',
+    'C6H5NO2':        'O=[N+]([O-])c1ccccc1',
+    'C6H5CH2Cl':      'ClCc1ccccc1',
+    'C6H5CH2Br':      'BrCc1ccccc1',
+    'C6H5CH2OH':      'OCc1ccccc1',
+    'C6H5CH=CH2':     'C=Cc1ccccc1',
+    'C6H5CH2CH3':     'CCc1ccccc1',
+    'C6H5CH2COOH':    'OC(=O)Cc1ccccc1',
+    'C6H5COCH3':      'CC(=O)c1ccccc1',
+    'C6H5COCl':       'ClC(=O)c1ccccc1',
+    'C6H5CH2CH2COOH': 'OC(=O)CCc1ccccc1',
+    'C6H5CH2CH2Br':   'BrCCc1ccccc1',
+    'C6H5CH2CH2COCH3':'CC(=O)CCc1ccccc1',
+    'C6H5CH=CHCOOH':  'OC(=O)/C=C/c1ccccc1',
+    'C6H5CH=CHCHO':   'O=C/C=C/c1ccccc1',
+    '(C6H5)2CO':      'O=C(c1ccccc1)c1ccccc1',
+    '(C6H5)3COH':     'OC(c1ccccc1)(c1ccccc1)c1ccccc1',
+    // 脂肪族
+    'CH4':            'C',
+    'C2H6':           'CC',
+    'C3H8':           'CCC',
+    'CH3OH':          'CO',
+    'C2H5OH':         'CCO',
+    'CH3CHO':         'CC=O',
+    'CH3COCH3':       'CC(=O)C',
+    'CH3COOH':        'CC(=O)O',
+    'CH3COCl':        'CC(=O)Cl',
+    'CH3COONa':       'CC(=O)[O-].[Na+]',
+    'CH3COOC2H5':     'CCOC(=O)C',
+    'CH3CONH2':       'CC(=O)N',
+    '(CH3CO)2O':      'CC(=O)OC(=O)C',
+    'HCHO':           'C=O',
+    'HCOOH':          'OC=O',
+    'C2H4':           'C=C',
+    'C2H2':           'C#C',
+    'CH3CH2CHO':      'CCC=O',
+    'CH3CH2COOH':     'CCC(=O)O',
+    'CH3CH2CH2COOH':  'CCCC(=O)O',
+    'CH3CH2COCl':     'CCC(=O)Cl',
+    'CH3COCH2COOC2H5':'CCOC(=O)CC(=O)C',   // 乙酰乙酸乙酯
+    'CH2(COOC2H5)2':  'CCOC(=O)CC(=O)OCC', // 丙二酸二乙酯
+    // 环状化合物
+    'C6H12':          'C1CCCCC1',
+    'C6H10O':         'O=C1CCCCC1',   // 环己酮
+    'C5H10O':         'O=C1CCCC1',    // 环戊酮
+    // 无机
+    'H2O':            'O',
+    'CO2':            'O=C=O',
+    'HCl':            'Cl',
+    'HBr':            'Br',
+    'NH3':            'N',
+    'NaOH':           '[Na+].[OH-]',
+  };
+
+  // 查已知表
+  var cleaned = s.replace(/\s/g,'');
+  if(KNOWN[cleaned]) return KNOWN[cleaned];
+
+  // 尝试用片段转换（简化，不能处理所有情况）
+  var result = cleaned;
+  // 先处理苯基
+  result = result.replace(/C6H5/g, 'Ph');
+  // 处理常见结构
+  result = result.replace(/COOH/g, 'C(=O)O');
+  result = result.replace(/CHO/g,  'C=O');
+  result = result.replace(/COCl/g, 'C(=O)Cl');
+  result = result.replace(/CONH2/g,'C(=O)N');
+  result = result.replace(/COOR/g, 'C(=O)OCC');
+  result = result.replace(/CO/g,   'C(=O)');
+  result = result.replace(/CH2/g,  'C');
+  result = result.replace(/CH3/g,  'C');
+  result = result.replace(/CH/g,   'C');
+  result = result.replace(/OH/g,   'O');
+  result = result.replace(/NH2/g,  'N');
+  result = result.replace(/Br/g,   'Br');
+  result = result.replace(/Cl/g,   'Cl');
+  result = result.replace(/Ph/g,   'c1ccccc1');
+  result = result.replace(/[0-9]+/g,'');
+  result = result.replace(/[HhRrZzSs]/g,'');
+  return result || null;
+}
+
+// ── 从预览HTML文本中识别化学式并插入结构图
+function renderChemStructures(){
+  if(typeof SmilesDrawer === 'undefined') return;
+  var pane = document.getElementById('previewPane');
+
+  // 方式1：```smiles ... ``` 代码块
+  pane.querySelectorAll('pre code.language-smiles, code.language-smiles').forEach(function(el){
+    drawSmiles(el.textContent.trim(), el.closest('pre')||el, 300, 200, false);
+  });
+
+  // 方式2：`@SMILES` 行内语法（以@开头）
+  pane.querySelectorAll('code').forEach(function(el){
+    var txt = el.textContent.trim();
+    if(txt.startsWith('@') && !el.closest('.chem-block')){
+      drawSmiles(txt.slice(1), el, 200, 140, true);
+    }
+  });
+
+  // 方式3：自动识别段落/列表中独立出现的化学式文字
+  // 匹配如：C₆H₅CH₂CH₂COCH₃ 或 CH₃COOH 等（含大写字母数字下标，长度≥4）
+  var CHEM_PATTERN = /(?<![a-zA-Z])([A-Z][A-Za-z0-9₀₁₂₃₄₅₆₇₈₉\(\)=≡\+\-]{3,})(?![a-zA-Z])/g;
+
+  // 只扫描 <p> <li> <td> <th> 里的文字节点
+  var containers = pane.querySelectorAll('p, li, td, th');
+  containers.forEach(function(container){
+    if(container.closest('.chem-block')) return;
+    var walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
+    var textNodes = [];
+    var node;
+    while(node = walker.nextNode()){
+      // 只处理含化学式特征的文字节点
+      if(CHEM_PATTERN.test(node.textContent)){
+        textNodes.push(node);
       }
     }
-    
-    // 异步触发公式和化学结构重新渲染
-    setTimeout(() => {
-      const pane = document.getElementById('previewPane');
-      if (!pane) return;
-      
-      // 1. 执行数学公式渲染
-      if (window.renderMathInElement) {
-        window.renderMathInElement(pane, {
-          delimiters: [
-            {left: '$$', right: '$$', display: true},
-            {left: '$', right: '$', display: false}
-          ],
-          throwOnError: false
-        });
+    textNodes.forEach(function(tn){
+      CHEM_PATTERN.lastIndex = 0;
+      var text = tn.textContent;
+      var match;
+      var fragments = [];
+      var lastIndex = 0;
+      while((match = CHEM_PATTERN.exec(text)) !== null){
+        var formula = match[1];
+        // 跳过纯英文单词（如"and"、"the"）和太短的
+        if(/^[a-z]+$/.test(formula)) continue;
+        // 跳过已知非化学式词（HTML标签残留等）
+        if(formula.length < 4) continue;
+        // 转为SMILES
+        var smiles = formulaToSmiles(formula);
+        if(!smiles || smiles.length < 2) continue;
+        // 验证SMILES是否能解析
+        fragments.push({start: match.index, end: match.index+formula.length, formula: formula, smiles: smiles});
       }
-      
-      // 2. 执行化学结构 SMILES 渲染
-      if (window.SmilesDrawer) {
-        const chemBlocks = pane.querySelectorAll('.chem-block[data-smiles]');
-        chemBlocks.forEach((block, i) => {
-          if (block.getAttribute('data-rendered')) return;
-          const smiles = block.getAttribute('data-smiles');
-          const canvasId = 'chem-canvas-' + Date.now() + '-' + i;
-          block.innerHTML = '<canvas id="' + canvasId + '"></canvas><div class="chem-label">' + smiles + '</div>';
-          
-          const sd = new SmilesDrawer.Drawer({ width: 220, height: 160 });
-          SmilesDrawer.parse(smiles, function(tree) {
-            sd.draw(tree, canvasId, 'light', false);
-            block.setAttribute('data
+      if(fragments.length === 0) return;
+
+      // 替换文字节点为混合节点（文字+结构图）
+      var parent = tn.parentNode;
+      var frag = document.createDocumentFragment();
+      var prev = 0;
+      fragments.forEach(function(f){
+        // 之前的普通文字
+        if(f.start > prev){
+          frag.appendChild(document.createTextNode(text.slice(prev, f.start)));
+        }
+        // 化学结构容器
+        var wrap = document.createElement('span');
+        wrap.className = 'chem-inline-wrap';
+        wrap.title = f.formula;
+        // canvas
+        var canvas = document.createElement('canvas');
+        canvas.width = 200; canvas.height = 130;
+        wrap.appendChild(canvas);
+        // 原式文字（小字，hover显示）
+        var label = document.createElement('span');
+        label.className = 'chem-label';
+        label.textContent = f.formula;
+        wrap.appendChild(label);
+        frag.appendChild(wrap);
+        // 异步渲染
+        (function(cv, sm, fw){
+          try{
+            var drawer = new SmilesDrawer.SvgDrawer({width:200,height:130,
+              themes:{light:{C:'#1a1a1a',O:'#dc2626',N:'#4f46e5',S:'#d97706',
+                F:'#059669',Cl:'#059669',Br:'#7c3aed',I:'#7c3aed',H:'#888',background:'#f9f9ff'}}});
+            SmilesDrawer.parse(sm, function(tree){
+              drawer.draw(tree, cv, 'light');
+            }, function(){
+              // 解析失败：只显示原式文字
+              cv.style.display='none';
+            });
+          }catch(e){ cv.style.display='none'; }
+        })(canvas, f.smiles, f.formula);
+
+        prev = f.end;
+      });
+      if(prev < text.length){
+        frag.appendChild(document.createTextNode(text.slice(prev)));
+      }
+      parent.replaceChild(frag, tn);
+    });
+  });
+}
+
+// ── 渲染单个SMILES到DOM元素
+function drawSmiles(smiles, targetEl, w, h, inline){
+  var wrapper = document.createElement(inline ? 'span' : 'div');
+  wrapper.className = 'chem-block';
+  if(inline){ wrapper.style.display='inline-block'; wrapper.style.verticalAlign='middle'; }
+  var canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  wrapper.appendChild(canvas);
+  targetEl.replaceWith ? targetEl.replaceWith(wrapper) : targetEl.parentNode.replaceChild(wrapper, targetEl);
+  try{
+    var drawer = new SmilesDrawer.SvgDrawer({width:w, height:h,
+      themes:{light:{C:'#1a1a1a',O:'#dc2626',N:'#4f46e5',S:'#d97706',
+        F:'#059669',Cl:'#059669',Br:'#7c3aed',I:'#7c3aed',H:'#888',background:'#f9f9ff'}}});
+    SmilesDrawer.parse(smiles, function(tree){
+      drawer.draw(tree, canvas, 'light');
+    }, function(){
+      wrapper.innerHTML='<span class="chem-error">无法渲染: '+escapeHtml(smiles)+'</span>';
+    });
+  }catch(e){
+    wrapper.innerHTML='<span class="chem-error">错误: '+escapeHtml(smiles)+'</span>';
+  }
+}
+
+function togglePreview(){
+  const pp = document.getElementById('previewPane');
+  const ep = document.getElementById('editPane');
+  const btn = document.getElementById('previewBtn');
+  const sb = document.getElementById('splitBtn');
+  if(viewMode === 'preview'){
+    viewMode = 'edit';
+    pp.classList.remove('show'); pp.style.display='none';
+    ep.style.display='block';
+    btn.classList.remove('active'); btn.textContent='👁 预览';
+    document.getElementById('editorArea').classList.remove('split-view');
+    sb.style.display='';
+  } else {
+    viewMode = 'preview';
+    updatePreview();
+    ep.style.display='none';
+    pp.classList.add('show'); pp.style.display='block';
+    btn.classList.add('active'); btn.textContent='✏ 编辑';
+    document.getElementById('editorArea').classList.remove('split-view');
+    sb.style.display='none';
+  }
+}
+
+function toggleSplit(){
+  const area = document.getElementById('editorArea');
+  const pp = document.getElementById('previewPane');
+  const ep = document.getElementById('editPane');
+  const btn = document.getElementById('splitBtn');
+  const pb = document.getElementById('previewBtn');
+  if(viewMode === 'split'){
+    viewMode = 'edit';
+    area.classList.remove('split-view');
+    area.style.display='flex'; area.style.flexDirection='column';
+    ep.style.display='block'; ep.style.flex='1';
+    pp.classList.remove('show'); pp.style.display='none';
+    btn.classList.remove('active'); btn.textContent='⬛ 分屏';
+    pb.style.display='';
+  } else {
+    viewMode = 'split';
+    updatePreview();
+    area.classList.add('split-view');
+    area.style.display='flex'; area.style.flexDirection='row';
+    ep.style.display='block'; ep.style.flex='1';
+    pp.classList.add('show'); pp.style.display='block'; pp.style.flex='1';
+    btn.classList.add('active'); btn.textContent='⬛ 退出分屏';
+    pb.style.display='none';
+  }
+}
+
+// ── 数据操作 ────────────────────────────────────────────
+async function fetchNotes(){
+  document.getElementById('noteItems').innerHTML='<div class="loading">加载中...</div>';
+  const r=await fetch(API+'?order=updated_at.desc',{headers:{...HEADERS,'Prefer':'return=representation'}});
+  notes=await r.json();
+  if(!Array.isArray(notes)) notes=[];
+  renderAll();
+}
+
+const CAT_ICONS = {
+  '全部':'📋','有机化学':'⚗️','无机化学':'🧪','分析化学':'🔬',
+  '物理化学':'⚡','编程':'💻','数学':'📐','英语':'🌐',
+  '读书笔记':'📖','其他':'📁'
+};
+
+function cats(){
+  const c=['全部'];
+  notes.forEach(n=>{if(n.category&&!c.includes(n.category))c.push(n.category)});
+  return c;
+}
+function catCount(c){return c==='全部'?notes.length:notes.filter(n=>n.category===c).length}
+function catIcon(c){return CAT_ICONS[c]||'📁'}
+
+function renderAll(){renderCats();renderList()}
+
+function renderCats(){
+  document.getElementById('catList').innerHTML=cats().map(c=>`
+    <div class="cat-item${c===currentCat?' active':''}">
+      <div class="cat-item-left" onclick="selectCat('${c.replace(/'/g, "\\'")}')">
+        ${catIcon(c)} <span>${c}</span>
+        <span class="cat-count">${catCount(c)}</span>
+      </div>
+      ${c !== '全部' ? `<button class="cat-delete-btn" onclick="deleteCategory('${c.replace(/'/g, "\\'")}')" title="删除分类「${c}」及其中所有笔记">🗑</button>` : ''}
+    </div>`).join('');
+}
+
+window.deleteCategory = async function(categoryName) {
+  if(categoryName === '全部') {
+    toast('不能删除「全部」虚拟分类', 1500);
+    return;
+  }
+  const notesToDelete = notes.filter(n => n.category === categoryName);
+  const count = notesToDelete.length;
+  const confirmMsg = `⚠️ 确定要删除分类「${categoryName}」吗？\n该分类下的 ${count} 条笔记将被永久删除！\n此操作不可恢复。`;
+  if(!confirm(confirmMsg)) return;
+  toast(`正在删除分类「${categoryName}」及 ${count} 条笔记...`, 1800);
+  try {
+    const deleteUrl = API + '?category=eq.' + encodeURIComponent(categoryName);
+    const res = await fetch(deleteUrl, {method: 'DELETE', headers: HEADERS});
+    if(res.ok) {
+      notes = notes.filter(n => n.category !== categoryName);
+      if(currentId) {
+        const currentNote = notes.find(n => n.id === currentId);
+        if(!currentNote) {
+          currentId = null;
+          document.getElementById('emptyState').style.display = '';
+          document.getElementById('editorContent').style.display = 'none';
+        }
+      }
+      if(currentCat === categoryName) currentCat = '全部';
+      renderAll();
+      toast(`✅ 已删除分类「${categoryName}」及 ${count} 条笔记`, 2500);
+    } else {
+      toast(`删除失败: 服务器错误`, 2000);
+    }
+  } catch(err) {
+    toast(`删除出错: ${err.message}`, 2000);
+  }
+};
+
+function selectCat(c){currentCat=c;document.getElementById('listTitle').textContent=c;renderCats();renderList()}
+
+function filtered(){return currentCat==='全部'?notes:notes.filter(n=>n.category===currentCat)}
+
+function renderList(){
+  const q=document.getElementById('searchInput').value.trim().toLowerCase();
+  let list=filtered();
+  if(q)list=list.filter(n=>(n.title||'').toLowerCase().includes(q)||(n.content||'').toLowerCase().includes(q)||((n.tags||[]).join(' ')).toLowerCase().includes(q));
+  document.getElementById('listCount').textContent=list.length+'篇';
+  document.getElementById('noteItems').innerHTML=list.length?list.map(n=>`
+    <div class="note-item${n.id===currentId?' active':''}" onclick="openNote('${n.id}')">
+      <div class="note-title">${escapeHtml(n.title||'无标题')}</div>
+      <div class="note-preview">${escapeHtml((n.content||'').replace(/!\[.*?\]\(data:.*?\)/g,'[图片]').replace(/[#\->\`*!]/g,'').slice(0,50))}</div>
+      <div class="note-meta">
+        ${(n.tags||[]).slice(0,3).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join('')}
+        <span class="note-date">${(n.updated_at||'').slice(0,10)}</span>
+      </div>
+    </div>`).join(''):'<div class="loading">暂无笔记</div>';
+}
+
+function escapeHtml(str){
+  if(!str) return '';
+  return str.replace(/[&<>"']/g, function(m){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];
+  });
+}
+
+function openNote(id){
+  currentId=id;
+  const n=notes.find(x=>x.id===id);
+  if(!n)return;
+  document.getElementById('emptyState').style.display='none';
+  const ec=document.getElementById('editorContent');
+  ec.style.display='flex'; ec.style.flexDirection='column';
+  document.getElementById('noteTitle').value=n.title||'';
+  document.getElementById('noteContent').value=n.content||'';
+  document.getElementById('catSelect').value=n.category||'';
+  renderEditorTags(n.tags||[]);
+  updateCount();
+  resetSaveBtn();
+  if(viewMode==='preview'||viewMode==='split') updatePreview();
+  renderList();
+}
+
+function renderEditorTags(tags){
+  document.getElementById('editorTags').innerHTML=
+    tags.map(t=>`<span class="etag">${escapeHtml(t)}<span class="etag-rm" onclick="removeTag('${t.replace(/'/g, "\\'")}')">×</span></span>`).join('')+
+    `<input class="tag-input" placeholder="+ 添加标签" id="tagInput" onkeydown="addTag(event)">`;
+}
+
+function removeTag(t){const n=notes.find(x=>x.id===currentId);if(!n)return;n.tags=(n.tags||[]).filter(x=>x!==t);renderEditorTags(n.tags)}
+function addTag(e){
+  if(e.key!=='Enter')return;
+  const v=e.target.value.trim();if(!v)return;
+  const n=notes.find(x=>x.id===currentId);
+  if(n){n.tags=n.tags||[];if(!n.tags.includes(v))n.tags.push(v);renderEditorTags(n.tags)}
+  e.target.value='';
+}
+
+function updateCount(){document.getElementById('wordCount').textContent=(document.getElementById('noteContent').value||'').length+' 字'}
+function resetSaveBtn(){const b=document.getElementById('saveBtn');b.textContent='保存';b.className='save-btn';b.disabled=false;}
+
+document.getElementById('noteTitle').oninput=resetSaveBtn;
+document.getElementById('noteContent').oninput=()=>{
+  updateCount();resetSaveBtn();
+  if(viewMode==='preview'||viewMode==='split') updatePreview();
+};
+
+// ── 保存笔记（修复新建逻辑）──────────────────────────────
+async function saveNote(){
+  const n=notes.find(x=>x.id===currentId);
+  if(!n)return;
+  n.title=document.getElementById('noteTitle').value||'无标题';
+  n.content=document.getElementById('noteContent').value;
+  n.category=document.getElementById('catSelect').value;
+  n.updated_at=new Date().toISOString();
+
+  const b=document.getElementById('saveBtn');
+  b.textContent='保存中...';b.disabled=true;
+
+  try{
+    if(!n._saved){
+      // 新建：POST，不带本地临时id
+      const body={title:n.title,content:n.content,category:n.category,tags:n.tags,updated_at:n.updated_at};
+      const r=await fetch(API,{method:'POST',headers:{...HEADERS,'Prefer':'return=representation'},body:JSON.stringify(body)});
+      if(!r.ok) throw new Error(await r.text());
+      const result=await r.json();
+      if(Array.isArray(result)&&result[0]){
+        const oldId=n.id;
+        n.id=result[0].id;
+        n.updated_at=result[0].updated_at||n.updated_at;
+        if(currentId===oldId) currentId=n.id;
+      }
+      n._saved=true;
+    } else {
+      // 更新：PATCH
+      const body={title:n.title,content:n.content,category:n.category,tags:n.tags,updated_at:n.updated_at};
+      const r=await fetch(API+'?id=eq.'+n.id,{method:'PATCH',headers:{...HEADERS,'Prefer':'return=representation'},body:JSON.stringify(body)});
+      if(!r.ok) throw new Error(await r.text());
+    }
+    b.textContent='✓ 已保存';b.className='save-btn saved';b.disabled=false;
+    toast('保存成功');renderAll();
+  } catch(e){
+    console.error('保存失败:',e);
+    b.textContent='保存';b.className='save-btn';b.disabled=false;
+    toast('保存失败: '+e.message,3000);
+  }
+}
+
+async function deleteNote(){
+  if(!currentId)return;
+  if(!confirm('确定删除这条笔记？'))return;
+  const n=notes.find(x=>x.id===currentId);
+  if(n&&n._saved)await fetch(API+'?id=eq.'+currentId,{method:'DELETE',headers:HEADERS});
+  notes=notes.filter(x=>x.id!==currentId);currentId=null;
+  document.getElementById('emptyState').style.display='';
+  document.getElementById('editorContent').style.display='none';
+  toast('已删除');renderAll();
+}
+
+document.getElementById('newBtn').onclick=()=>{
+  const n={id:'tmp-'+Date.now(),title:'',content:'',
+    category:currentCat==='全部'?'其他':currentCat,
+    tags:[],updated_at:new Date().toISOString(),_saved:false};
+  notes.unshift(n);renderList();openNote(n.id);
+  setTimeout(()=>document.getElementById('noteTitle').focus(),50);
+};
+
+document.getElementById('searchInput').oninput=renderList;
+
+function ins(pre,suf){
+  const ta=document.getElementById('noteContent');
+  const s=ta.selectionStart,e=ta.selectionEnd;
+  const sel=ta.value.slice(s,e);
+  ta.value=ta.value.slice(0,s)+pre+sel+suf+ta.value.slice(e);
+  ta.selectionStart=s+pre.length;ta.selectionEnd=s+pre.length+sel.length;
+  ta.focus();if(viewMode==='split'||viewMode==='preview')updatePreview();
+}
+function insLine(pre){
+  const ta=document.getElementById('noteContent');
+  const s=ta.selectionStart;
+  const start=ta.value.lastIndexOf('\n',s-1)+1;
+  ta.value=ta.value.slice(0,start)+pre+ta.value.slice(start);
+  ta.selectionStart=ta.selectionEnd=s+pre.length;
+  ta.focus();if(viewMode==='split'||viewMode==='preview')updatePreview();
+}
+
+fetchNotes();
+</script>
+</body>
+</html>
