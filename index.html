@@ -174,7 +174,7 @@ let viewMode = 'split'; // split, edit, preview
 let sdOptions = { width: 300, height: 300, bondThickness: 1.5, textSize: 14 };
 let smilesDrawer = new SmilesDrawer.Drawer(sdOptions);
 
-// 化学名称/简写转 SMILES 的字典映射，可随手维护
+// 化学名称/简写转 SMILES 的字典映射
 function formulaToSmiles(text) {
   let t = text.trim();
   const dict = {
@@ -195,12 +195,12 @@ function toast(msg){
   setTimeout(()=>t.style.display='none',2000);
 }
 
-// ⚠️ 已修改：拉取数据时默认把旧笔记的 _saved 设为 true，确保初始化结构统一
+// 🛠️ 修复点1：加载数据时，默认将所有已有笔记设为 _saved: true 状态，保持一致性
 async function fetchNotes(){
   try{
     const r=await fetch(API+'?order=updated_at.desc', {headers:HEADERS});
     const res=await r.json();
-    notes = res.map(item => ({ ...item, _saved: true })); // 注入已保存状态
+    notes = res.map(item => ({ ...item, _saved: true }));
     renderAll();
   }catch(e){toast('数据加载失败');}
 }
@@ -247,7 +247,6 @@ function renderCats(){
   html+=`<div class="cat-item ${currentCat==='未分类'?'active':''}" onclick="switchCat('未分类')"><span>未分类</span><span class="cat-count">${counts['未分类']}</span></div>`;
   zone.innerHTML=html;
 
-  // 同时刷新编辑区下拉选择框
   const sel=document.getElementById('noteCatSelect');
   let selHtml='<option value="未分类">未分类</option>';
   customCats.forEach(c=>{ selHtml+=`<option value="${c}">${c}</option>`; });
@@ -316,26 +315,14 @@ function openNote(id){
   document.getElementById('noteCatSelect').value=n.category||'未分类';
   document.getElementById('noteContent').value=n.content||'';
 
-  // 渲染高亮侧边栏
-  const items=document.querySelectorAll('.note-item');
-  // 简易刷新列表激活状态
-  renderListActiveState();
+  renderList();
   renderTags(n.tags||[]);
   updatePreview();
-}
-
-function renderListActiveState(){
-  // 避免高强度完全重绘，直接类名操纵
-  const wrapper=document.getElementById('noteListZone');
-  // 为图省事，目前直接完全绘制更安全，但在大列表下可能有迟滞。在此使用局部高亮：
-  // 仍旧采用 renderList 里的逻辑，但为了流畅不完全重绘。此处因为有分类过滤，直接renderList最保险
-  // 为防止循环冲突，openNote里不再重新调用完整renderList，只改样式
 }
 
 function renderTags(tags){
   const zone=document.getElementById('tagZone');
   const inp=document.getElementById('tagInput');
-  // 删掉之前的旧显式标签
   const old=zone.querySelectorAll('.tag-badge');
   old.forEach(x=>x.remove());
   tags.forEach(t=>{
@@ -372,7 +359,6 @@ document.getElementById('tagInput').onkeydown=(e)=>{
   }
 };
 
-// 极简 Markdown 转换器加化学、数学插件扩展
 function mdToHtml(md) {
   if(!md) return '';
   let html = md
@@ -380,15 +366,11 @@ function mdToHtml(md) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 
-  // 1. 处理特殊独占一行的化学式绘制语法： $$$SMILES 或 $$$化学名称
-  // 格式：单独一行以 $$$ 开头
   let lines = html.split('\n');
   let inCodeBlock = false;
   
   for(let i=0; i<lines.length; i++) {
     let line = lines[i].trim();
-    
-    // 跳过常规代码块内部
     if(line.startsWith('```')) { inCodeBlock = !inCodeBlock; continue; }
     if(inCodeBlock) continue;
 
@@ -401,46 +383,36 @@ function mdToHtml(md) {
   }
   html = lines.join('\n');
 
-  // 2. 处理大公式块独占一行包裹： $$$公式内容$$$ 转换成 KaTeX 专属块
-  // 兼容用户打错或者混用：将独占一行的 $$$公式内容 转换为居中块
   html = html.replace(/\$\$\$\s*([\s\S]*?)\s*\$\$\$/g, '<div class="katex-block-target">$$$1$$</div>');
 
-  // 3. 常规 Markdown 基础块渲染
   html = html
     .replace(/^# (.*)$/gm, '<h1>$1</h1>')
     .replace(/^## (.*)$/gm, '<h2>$1</h2>')
     .replace(/^### (.*)$/gm, '<h3>$1</h3>')
     .replace(/^&gt; (.*)$/gm, '<blockquote>$1</blockquote>')
     .replace(/^\s*\n/gm, '<br>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*\*(.*?)\*\//g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
     .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
     .replace(/`([^`]+)`/g, '<code>$1</code>');
 
-  // 表格极简转换
   html = html.replace(/^\|([\s\S]*?)\|$/gm, function(match) {
     let cells = match.split('|').map(c=>c.trim()).filter((c,idx,arr)=>idx>0 && idx<arr.length-1);
-    if(match.includes('---')) return ''; // 分隔线略过
-    let isHeader = false;
-    // 粗暴判定：如果是第一行或者上行有特殊标识，但在正则里单行判定，我们默认根据结构包装
+    if(match.includes('---')) return '';
     return `<tr>${cells.map(c=>`<td>${c}</td>`).join('')}</tr>`;
   });
-  // 包裹表格标签
   html = html.replace(/((?:<tr>[\s\S]*?<\/tr>)+)/g, '<table>$1</table>');
-  // 修复 th 表头判定（将首行tr换成th）
   html = html.replace(/<table>\s*<tr>([\s\S]*?)<\/tr>/g, '<table><thead><tr>$1</tr></thead><tbody>');
   html = html.replace(/<\/tr>\s*<\/table>/g, '</tr></tbody></table>');
-  // 简单修复thead内部的td换成th
   html = html.replace(/<thead><tr>([\s\S]*?)<\/tr><\/thead>/g, function(m, p1){
     return `<thead><tr>${p1.replace(/<td>/g,'<th>').replace(/<\/td>/g,'<\/th>')}</tr></thead>`;
   });
 
-  // 列表转换
   html = html.replace(/^\s*[\-\*]\s+(.*)$/gm, '<li>$1</li>');
   html = html.replace(/((?:<li>.*?<\/li>\s*)+)/g, '<ul>$1</ul>');
   html = html.replace(/^\s*(\d+)\.\s+(.*)$/gm, '<li>$2</li>');
   html = html.replace(/((?:<li>.*?<\/li>\s*)+)/g, function(m){
-    if(m.trim().startsWith('<ul>')) return m; // 防止和无序列表重叠
+    if(m.trim().startsWith('<ul>')) return m;
     return `<ol>${m}</ol>`;
   });
 
@@ -452,7 +424,6 @@ function updatePreview(){
   const txt=document.getElementById('noteContent').value;
   pane.innerHTML = mdToHtml(txt);
 
-  // 1. 调用 KaTeX 渲染数学公式
   renderMathInElement(pane, {
     delimiters: [
       {left: '$$$', right: '$$$', display: true},
@@ -462,7 +433,6 @@ function updatePreview(){
     throwOnError: false
   });
 
-  // 2. 调用 SmilesDrawer 批量异步渲染画布中的化学二维分子结构
   const canvases = pane.querySelectorAll('.smiles-canvas');
   canvases.forEach(canvas => {
     let smiles = canvas.getAttribute('data-smiles');
@@ -478,7 +448,6 @@ function updatePreview(){
 
 document.getElementById('noteContent').oninput = updatePreview;
 
-// 实时修改联动内存
 document.getElementById('noteTitle').oninput=(e)=>{
   const n=notes.find(x=>x.id===currentId);
   if(n){ n.title=e.target.value; renderList(); }
@@ -488,7 +457,6 @@ document.getElementById('noteCatSelect').onchange=(e)=>{
   if(n){ n.category=e.target.value; renderCats(); renderList(); }
 };
 
-// 触发同步到云端数据库的保存操作
 async function saveNote(){
   if(!currentId) return;
   const n=notes.find(x=>x.id===currentId);
@@ -499,7 +467,6 @@ async function saveNote(){
   n.content = document.getElementById('noteContent').value;
   n.updated_at = new Date().toISOString();
 
-  // 剔除前端本地临时专属字段再发送
   const payload = {
     title: n.title,
     content: n.content,
@@ -511,7 +478,6 @@ async function saveNote(){
   try{
     let url = API;
     let method = 'POST';
-    // 如果是数据库里本来就有的旧数据（或之前存成功的），走更新接口
     if(n._saved && !n.id.toString().startsWith('tmp-')){
       url = `${API}?id=eq.${n.id}`;
       method = 'PATCH';
@@ -526,7 +492,6 @@ async function saveNote(){
     if(res.ok){
       const returnedData = await res.json();
       if(method==='POST' && returnedData && returnedData[0]){
-        // 替换掉临时的临时 ID，锁死单条唯一凭证
         n.id = returnedData[0].id;
       }
       n._saved = true;
@@ -543,14 +508,13 @@ window.onkeydown=(e)=>{
   if((e.ctrlKey||e.metaKey) && e.key==='s'){ e.preventDefault(); saveNote(); }
 };
 
-// ⚠️ 已彻底修改：去掉了以前阻碍删除控制台外来数据的 && n._saved 限制条件
+// 🛠️ 修复点2：彻底解除以前阻碍删除的限制条件，只要存在 id 就直接触发真实的 DELETE 云同步
 document.getElementById('delBtn').onclick=async()=>{
   if(!currentId) return;
   if(!confirm('确定彻底删除这条笔记吗？此操作将永久同步并清空云端数据库数据。')) return;
   
   const n=notes.find(x=>x.id===currentId);
   if(n) {
-    // 只要不是纯本地尚未提交过的新手草稿tmp-，均全自动一键抹除
     if(!n.id.toString().startsWith('tmp-')) {
       try {
         await fetch(API+'?id=eq.'+currentId, { method:'DELETE', headers:HEADERS });
@@ -560,14 +524,14 @@ document.getElementById('delBtn').onclick=async()=>{
     }
   }
   
-  // 无论如何同步抹除本地缓存，清空编辑视图
   notes=notes.filter(x=>x.id!==currentId);
   closeEditor();
   toast('已成功彻底删除');
   renderAll();
 };
 
-document.getElementById('newBtn').onclick=()=>{\n  const n={id:'tmp-'+Date.now(),title:'',content:'',
+document.getElementById('newBtn').onclick=()=>{
+  const n={id:'tmp-'+Date.now(),title:'',content:'',
     category:currentCat==='全部'||currentCat==='未分类'?'其他':currentCat,
     tags:[],updated_at:new Date().toISOString(),_saved:false};
   notes.unshift(n);
@@ -583,7 +547,6 @@ document.getElementById('searchClear').onclick=()=>{
   renderList();
 };
 
-// 辅助编辑区分栏展示控制逻辑
 document.getElementById('modeBtn').onclick=()=>{
   const btn=document.getElementById('modeBtn');
   const ep=document.getElementById('editPane');
@@ -600,7 +563,6 @@ document.getElementById('modeBtn').onclick=()=>{
   }
 };
 
-// 分类模态框控制逻辑
 document.getElementById('mgrCatLink').onclick=(e)=>{
   e.preventDefault();
   document.getElementById('catModal').style.display='flex';
@@ -637,7 +599,6 @@ document.getElementById('addCatBtn').onclick=()=>{
   renderAll();
 };
 
-// 辅助插入文本宏函数
 function ins(pre,suf){
   const ta=document.getElementById('noteContent');
   const s=ta.selectionStart,e=ta.selectionEnd;
@@ -654,7 +615,6 @@ function insLine(pre, suf=''){
   ta.focus(); updatePreview();
 }
 
-// 页面加载启动
 loadCatsFromLocal();
 fetchNotes();
 </script>
