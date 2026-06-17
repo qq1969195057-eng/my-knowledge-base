@@ -280,19 +280,35 @@ async function downloadPDF(){
   toast('正在生成PDF...');
   try{
     await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
-    // 加载思源黑体（中文字形），让jsPDF能正确绘制中文真文字（而非依赖截图），避免乱码和空白
-    await loadScript('https://cdn.jsdelivr.net/npm/vxe-table-plugin-export-pdf/fonts/source-han-sans-normal.js');
+
+    // 加载思源黑体中文字形。该脚本通过 jsPDF.API.events 钩子，
+    // 在每次 new jsPDF() 创建实例时自动调用 addFileToVFS + addFont 完成字体注册。
+    let fontLoaded = false;
+    try{
+      await loadScript('https://cdn.jsdelivr.net/npm/vxe-table-plugin-export-pdf/fonts/source-han-sans-normal.js');
+      fontLoaded = true;
+    }catch(fontLoadErr){
+      console.warn('中文字体CDN加载失败', fontLoadErr);
+    }
 
     const {jsPDF} = window.jspdf;
     const pdf = new jsPDF({orientation:'portrait',unit:'pt',format:'a4'});
 
     const FONT = 'SourceHanSans-Normal';
-    try{
-      pdf.addFont('SourceHanSans-Normal.ttf', FONT, 'normal');
-      pdf.setFont(FONT);
-    }catch(fontErr){
-      console.warn('中文字体加载失败，使用默认字体（中文可能无法显示）', fontErr);
+    let fontName = 'helvetica'; // 默认回退字体
+    if(fontLoaded){
+      try{
+        pdf.setFont(FONT, 'normal');
+        fontName = FONT;
+      }catch(setFontErr){
+        console.warn('设置中文字体失败，使用默认字体', setFontErr);
+      }
     }
+
+    function ensureFont(){
+      try{ pdf.setFont(fontName, 'normal'); }catch(e){ /* 静默失败，继续用当前字体 */ }
+    }
+    ensureFont();
 
     // ── 页面与排版参数 ──
     const pageW = 595.28, pageH = 841.89; // A4, pt
@@ -303,7 +319,7 @@ async function downloadPDF(){
     function newPageIfNeeded(neededHeight){
       if(y + neededHeight > pageH - marginBottom){
         pdf.addPage();
-        pdf.setFont(FONT);
+        ensureFont();
         y = marginTop;
       }
     }
@@ -535,7 +551,8 @@ async function downloadPDF(){
     toast('✓ 已下载 '+safeTitle);
   } catch(e){
     console.error('PDF生成失败', e);
-    toast('PDF生成失败：'+e.message, 3000);
+    alert('PDF生成失败：' + (e && e.message ? e.message : String(e)));
+    toast('PDF生成失败，请查看弹窗中的具体原因', 4000);
   }
 }
 
