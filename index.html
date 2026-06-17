@@ -221,7 +221,7 @@ const API = SUPABASE_URL + '/rest/v1/notes';
 const STORAGE_API = SUPABASE_URL + '/storage/v1/object';
 const HEADERS = {'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
 
-console.log('知识库 build: 2026-06-17-fix2 (含批量删除/单条删除的数据库校验修复)');
+console.log('知识库 build: 2026-06-17-fix3 (含批量删除/单条删除的数据库校验修复 + 拉取列表防缓存)');
 
 let notes=[], currentId=null, currentCat='全部', viewMode='edit';
 // ── 新增：批量删除相关状态 ──
@@ -839,7 +839,7 @@ function toggleSplit(){
 // ── 数据操作 ────────────────────────────────────────────
 async function fetchNotes(){
   document.getElementById('noteItems').innerHTML='<div class="loading">加载中...</div>';
-  const r=await fetch(API+'?order=updated_at.desc',{headers:{...HEADERS,'Prefer':'return=representation'}});
+  const r=await fetch(API+'?order=updated_at.desc',{headers:{...HEADERS,'Prefer':'return=representation','Cache-Control':'no-cache','Pragma':'no-cache'},cache:'no-store'});
   notes=await r.json();
   if(!Array.isArray(notes)) notes=[];
   renderAll();
