@@ -112,18 +112,6 @@ select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;back
 .chem-inline-wrap{display:inline-flex;flex-direction:column;align-items:center;background:#f9f9ff;border-radius:8px;border:1px solid #e0defa;padding:4px 6px;margin:2px 4px;vertical-align:middle;cursor:default}
 .chem-inline-wrap canvas{display:block}
 .chem-label{font-size:10px;color:#888;font-family:monospace;margin-top:2px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* ── 新增：批量删除笔记样式 ── */
-.batch-toggle-btn{font-size:12px;padding:3px 10px;border:1px solid #e8e8e4;border-radius:6px;background:transparent;color:#888;cursor:pointer;font-family:inherit}
-.batch-toggle-btn:hover{background:#f5f5f0;color:#4338ca}
-.batch-toggle-btn.active{background:#fef2f2;border-color:#fca5a5;color:#ef4444}
-.batch-action-bar{display:none;padding:8px 14px;border-bottom:1px solid #e8e8e4;align-items:center;gap:8px;font-size:12px;color:#888;background:#fafaf8}
-.batch-bar-btn{font-size:12px;padding:4px 10px;border:1px solid #e8e8e4;border-radius:6px;background:#fff;color:#555;cursor:pointer;font-family:inherit}
-.batch-bar-btn:hover{background:#f5f5f0}
-.batch-bar-btn.danger{border-color:#fca5a5;color:#ef4444}
-.batch-bar-btn.danger:hover{background:#fef2f2}
-.note-item.select-mode{display:flex;align-items:flex-start;gap:8px}
-.note-item-content{flex:1;min-width:0}
-.note-checkbox{margin-top:3px;cursor:pointer;width:14px;height:14px;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -141,19 +129,7 @@ select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;back
     <button class="new-btn" id="newBtn">＋ 新建笔记</button>
   </div>
   <div class="note-list">
-    <div class="list-header">
-      <span id="listTitle">全部笔记</span>
-      <span style="display:flex;align-items:center;gap:8px">
-        <span id="listCount" style="font-size:12px;color:#bbb"></span>
-        <button class="batch-toggle-btn" id="batchModeBtn" onclick="toggleSelectMode()">批量删除</button>
-      </span>
-    </div>
-    <div class="batch-action-bar" id="batchActionBar">
-      <span>已选 <span id="selectedCount">0</span> 项</span>
-      <button class="batch-bar-btn" id="selectAllBtn" onclick="selectAllVisible()">全选</button>
-      <button class="batch-bar-btn danger" onclick="deleteSelectedNotes()">删除所选</button>
-      <button class="batch-bar-btn" onclick="toggleSelectMode()">取消</button>
-    </div>
+    <div class="list-header"><span id="listTitle">全部笔记</span><span id="listCount" style="font-size:12px;color:#bbb"></span></div>
     <div class="note-items" id="noteItems"></div>
   </div>
   <div class="editor" id="editor">
@@ -221,11 +197,7 @@ const API = SUPABASE_URL + '/rest/v1/notes';
 const STORAGE_API = SUPABASE_URL + '/storage/v1/object';
 const HEADERS = {'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
 
-console.log('知识库 build: 2026-06-17-fix8 (自动识别化学式：画不出来的优雅降级为普通文字，不再留空壳样式框)');
-
 let notes=[], currentId=null, currentCat='全部', viewMode='edit';
-// ── 新增：批量删除相关状态 ──
-let selectMode=false, selectedIds=new Set();
 
 function toast(msg,dur){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur||2000)}
 
@@ -322,33 +294,80 @@ async function downloadPDF(){
     await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
 
     const container = document.createElement('div');
-    container.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:#fff;padding:48px 56px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:14px;line-height:1.8;color:#1a1a1a;box-sizing:border-box;';
+    // 修复：改用 visibility:hidden + 固定在视口内（top:0,left:0），而非 left:-9999px
+    // html2canvas 对屏幕外元素（如 left:-9999px）渲染不稳定，常导致空白截图
+    container.style.cssText = 'position:absolute;top:0;left:0;width:794px;background:#fff;padding:48px 56px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:14px;line-height:1.8;color:#1a1a1a;box-sizing:border-box;z-index:-9999;visibility:visible;opacity:1;';
     container.innerHTML = `
       <div style="margin-bottom:20px">
         <div style="font-size:22px;font-weight:700;color:#1a1a1a;margin-bottom:6px">${escapeHtml(title)}</div>
         <div style="font-size:12px;color:#aaa">导出时间：${new Date().toLocaleString('zh-CN')}</div>
       </div>
       <hr style="border:none;border-top:1px solid #e8e8e4;margin-bottom:18px">
-      <style>
-        h1{font-size:20px;font-weight:700;margin:0 0 12px;padding-bottom:8px;border-bottom:2px solid #e8e8e4}
-        h2{font-size:17px;font-weight:600;margin:18px 0 8px;padding-bottom:4px;border-bottom:1px solid #f0f0ec}
-        h3{font-size:15px;font-weight:600;margin:14px 0 6px;color:#333}
-        p{margin:0 0 9px;color:#333}ul,ol{margin:0 0 9px 20px}li{margin-bottom:3px}
-        blockquote{border-left:3px solid #a5b4fc;padding:6px 12px;margin:10px 0;background:#f9f9ff;color:#555}
-        code{background:#f0f0ec;padding:1px 4px;border-radius:3px;font-family:monospace;font-size:12px;color:#d63384}
-        pre{background:#f5f5f0;padding:10px;border-radius:6px;margin:10px 0}
-        table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
-        th{background:#ede9fe;padding:6px 8px;font-weight:600;border:1px solid #e0defa}
-        td{padding:5px 8px;border:1px solid #e8e8e4}tr:nth-child(even){background:#f9f9ff}
-        strong{font-weight:600}em{font-style:italic;color:#555}
-        hr{border:none;border-top:1px solid #e8e8e4;margin:14px 0}
-        img{max-width:100%;border-radius:6px;margin:6px 0;display:block}
-      </style>
-      <div>${htmlBody}</div>`;
+      <div id="pdf-content-inner">${htmlBody}</div>`;
+
+    // 样式作为单独的 <style> 元素插入 head（而非塞进 innerHTML 字符串），确保被解析为生效样式
+    const pdfStyleEl = document.createElement('style');
+    pdfStyleEl.id = 'pdf-export-style';
+    pdfStyleEl.textContent = `
+      #pdf-content-inner h1{font-size:20px;font-weight:700;margin:0 0 12px;padding-bottom:8px;border-bottom:2px solid #e8e8e4}
+      #pdf-content-inner h2{font-size:17px;font-weight:600;margin:18px 0 8px;padding-bottom:4px;border-bottom:1px solid #f0f0ec}
+      #pdf-content-inner h3{font-size:15px;font-weight:600;margin:14px 0 6px;color:#333}
+      #pdf-content-inner p{margin:0 0 9px;color:#333}
+      #pdf-content-inner ul,#pdf-content-inner ol{margin:0 0 9px 20px}
+      #pdf-content-inner li{margin-bottom:3px}
+      #pdf-content-inner blockquote{border-left:3px solid #a5b4fc;padding:6px 12px;margin:10px 0;background:#f9f9ff;color:#555}
+      #pdf-content-inner code{background:#f0f0ec;padding:1px 4px;border-radius:3px;font-family:monospace;font-size:12px;color:#d63384}
+      #pdf-content-inner pre{background:#f5f5f0;padding:10px;border-radius:6px;margin:10px 0}
+      #pdf-content-inner table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
+      #pdf-content-inner th{background:#ede9fe;padding:6px 8px;font-weight:600;border:1px solid #e0defa}
+      #pdf-content-inner td{padding:5px 8px;border:1px solid #e8e8e4}
+      #pdf-content-inner tr:nth-child(even){background:#f9f9ff}
+      #pdf-content-inner strong{font-weight:600}
+      #pdf-content-inner em{font-style:italic;color:#555}
+      #pdf-content-inner hr{border:none;border-top:1px solid #e8e8e4;margin:14px 0}
+      #pdf-content-inner img{max-width:100%;border-radius:6px;margin:6px 0;display:block}
+    `;
+    document.head.appendChild(pdfStyleEl);
     document.body.appendChild(container);
 
-    const canvas = await html2canvas(container,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false});
+    // 等待图片加载完成（若笔记含图片，html2canvas 截图时图片若未加载完会变白）
+    const imgs = container.querySelectorAll('img');
+    await Promise.all(Array.from(imgs).map(img => {
+      if(img.complete) return Promise.resolve();
+      return new Promise(resolve => {
+        img.onload = resolve;
+        img.onerror = resolve;
+        setTimeout(resolve, 3000); // 超时保护，最多等3秒
+      });
+    }));
+
+    // 额外等待一帧，确保浏览器完成布局与样式计算
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+    const canvas = await html2canvas(container,{
+      scale:2,
+      useCORS:true,
+      backgroundColor:'#ffffff',
+      logging:false,
+      windowWidth: container.scrollWidth,
+      windowHeight: container.scrollHeight,
+      height: container.scrollHeight,
+      width: container.scrollWidth
+    });
+
     document.body.removeChild(container);
+    document.head.removeChild(pdfStyleEl);
+
+    // 检测画布是否真的为空白（全白/全透明），若是则提示用户用打印方式
+    const ctx = canvas.getContext('2d');
+    const sample = ctx.getImageData(0, 0, Math.min(canvas.width,50), Math.min(canvas.height,50)).data;
+    let allWhite = true;
+    for(let i=0;i<sample.length;i+=4){
+      if(sample[i]!==255||sample[i+1]!==255||sample[i+2]!==255){ allWhite=false; break; }
+    }
+    if(allWhite && canvas.height < 100){
+      throw new Error('内容渲染为空');
+    }
 
     const {jsPDF} = window.jspdf;
     const imgData = canvas.toDataURL('image/jpeg',0.92);
@@ -368,8 +387,14 @@ async function downloadPDF(){
     pdf.save((title+'.pdf').replace(/[\\/:*?"<>|]/g,'_'));
     toast('✓ 已下载 '+title+'.pdf');
   } catch(e){
-    console.error(e);
-    toast('PDF生成失败，请重试',3000);
+    console.error('html2canvas方式失败，改用打印方式', e);
+    toast('改用打印方式生成PDF...');
+    // 兜底方案：html2canvas渲染失败时，自动改用打印窗口方式（更稳定，不会出现空白）
+    const win = window.open('','_blank');
+    if(!win){toast('请允许弹出窗口后重试',3000);return;}
+    win.document.write(buildPrintHtml(title, htmlBody));
+    win.document.close();
+    toast('请在弹出窗口中选择「存储为PDF」');
   }
 }
 
@@ -708,8 +733,6 @@ function renderChemStructures(){
         if(/^[a-z]+$/.test(formula)) continue;
         // 跳过已知非化学式词（HTML标签残留等）
         if(formula.length < 4) continue;
-        // 跳过人名/反应名（如Kolbe-Schmitt、Cannizzaro）：真正的化学式不会有连续3个以上小写字母
-        if(/[a-z]{3,}/.test(formula)) continue;
         // 转为SMILES
         var smiles = formulaToSmiles(formula);
         if(!smiles || smiles.length < 2) continue;
@@ -722,7 +745,6 @@ function renderChemStructures(){
       var parent = tn.parentNode;
       var frag = document.createDocumentFragment();
       var prev = 0;
-      var pendingRenders = []; // 先收集待画的canvas，等真正接入DOM之后再画
       fragments.forEach(function(f){
         // 之前的普通文字
         if(f.start > prev){
@@ -742,7 +764,20 @@ function renderChemStructures(){
         label.textContent = f.formula;
         wrap.appendChild(label);
         frag.appendChild(wrap);
-        pendingRenders.push({wrap: wrap, canvas: canvas, smiles: f.smiles, formula: f.formula});
+        // 异步渲染
+        (function(cv, sm, fw){
+          try{
+            var drawer = new SmilesDrawer.SvgDrawer({width:200,height:130,
+              themes:{light:{C:'#1a1a1a',O:'#dc2626',N:'#4f46e5',S:'#d97706',
+                F:'#059669',Cl:'#059669',Br:'#7c3aed',I:'#7c3aed',H:'#888',background:'#f9f9ff'}}});
+            SmilesDrawer.parse(sm, function(tree){
+              drawer.draw(tree, cv, 'light');
+            }, function(){
+              // 解析失败：只显示原式文字
+              cv.style.display='none';
+            });
+          }catch(e){ cv.style.display='none'; }
+        })(canvas, f.smiles, f.formula);
 
         prev = f.end;
       });
@@ -750,36 +785,6 @@ function renderChemStructures(){
         frag.appendChild(document.createTextNode(text.slice(prev)));
       }
       parent.replaceChild(frag, tn);
-
-      // 此时所有元素已经真正接入页面DOM，再开始画图（SmilesDrawer内部测量文字尺寸需要元素已挂载在文档中）
-      // 任何一步失败，都把整个占位框还原成普通文字，不留"看起来坏掉的空盒子"
-      pendingRenders.forEach(function(item){
-        var cv = item.canvas, sm = item.smiles, fw = item.formula, wrapEl = item.wrap;
-        function fallbackToText(){
-          if(wrapEl && wrapEl.parentNode){
-            wrapEl.parentNode.replaceChild(document.createTextNode(fw), wrapEl);
-          }
-        }
-        try{
-          var drawer = new SmilesDrawer.Drawer({width:200,height:130,
-            themes:{light:{C:'#1a1a1a',O:'#dc2626',N:'#4f46e5',S:'#d97706',
-              F:'#059669',Cl:'#059669',Br:'#7c3aed',I:'#7c3aed',H:'#888',background:'#f9f9ff'}}});
-          SmilesDrawer.parse(sm, function(tree){
-            try{
-              drawer.draw(tree, cv, 'light');
-            }catch(drawErr){
-              console.error('[chem] draw失败，原式：', fw, ' smiles：', sm, ' 错误：', drawErr);
-              fallbackToText();
-            }
-          }, function(parseErr){
-            console.error('[chem] SMILES解析失败，原式：', fw, ' smiles：', sm, ' 错误：', parseErr);
-            fallbackToText();
-          });
-        }catch(e){
-          console.error('[chem] 初始化失败，原式：', fw, ' smiles：', sm, ' 错误：', e);
-          fallbackToText();
-        }
-      });
     });
   });
 }
@@ -794,22 +799,15 @@ function drawSmiles(smiles, targetEl, w, h, inline){
   wrapper.appendChild(canvas);
   targetEl.replaceWith ? targetEl.replaceWith(wrapper) : targetEl.parentNode.replaceChild(wrapper, targetEl);
   try{
-    var drawer = new SmilesDrawer.Drawer({width:w, height:h,
+    var drawer = new SmilesDrawer.SvgDrawer({width:w, height:h,
       themes:{light:{C:'#1a1a1a',O:'#dc2626',N:'#4f46e5',S:'#d97706',
         F:'#059669',Cl:'#059669',Br:'#7c3aed',I:'#7c3aed',H:'#888',background:'#f9f9ff'}}});
     SmilesDrawer.parse(smiles, function(tree){
-      try{
-        drawer.draw(tree, canvas, 'light');
-      }catch(drawErr){
-        console.error('[chem] drawSmiles draw失败，smiles：', smiles, ' 错误：', drawErr);
-        wrapper.innerHTML='<span class="chem-error">无法渲染: '+escapeHtml(smiles)+'</span>';
-      }
-    }, function(parseErr){
-      console.error('[chem] drawSmiles 解析失败，smiles：', smiles, ' 错误：', parseErr);
+      drawer.draw(tree, canvas, 'light');
+    }, function(){
       wrapper.innerHTML='<span class="chem-error">无法渲染: '+escapeHtml(smiles)+'</span>';
     });
   }catch(e){
-    console.error('[chem] drawSmiles 初始化失败，smiles：', smiles, ' 错误：', e);
     wrapper.innerHTML='<span class="chem-error">错误: '+escapeHtml(smiles)+'</span>';
   }
 }
@@ -866,10 +864,9 @@ function toggleSplit(){
 // ── 数据操作 ────────────────────────────────────────────
 async function fetchNotes(){
   document.getElementById('noteItems').innerHTML='<div class="loading">加载中...</div>';
-  const r=await fetch(API+'?order=updated_at.desc',{headers:{...HEADERS,'Prefer':'return=representation','Cache-Control':'no-cache','Pragma':'no-cache'},cache:'no-store'});
+  const r=await fetch(API+'?order=updated_at.desc',{headers:{...HEADERS,'Prefer':'return=representation'}});
   notes=await r.json();
   if(!Array.isArray(notes)) notes=[];
-  notes.forEach(n=>{ n._saved=true; }); // 从数据库加载的笔记本来就已经存在，必须标记为已保存，否则删除时会被当成"本地草稿"而跳过真正的删除请求
   renderAll();
 }
 
@@ -944,101 +941,14 @@ function renderList(){
   if(q)list=list.filter(n=>(n.title||'').toLowerCase().includes(q)||(n.content||'').toLowerCase().includes(q)||((n.tags||[]).join(' ')).toLowerCase().includes(q));
   document.getElementById('listCount').textContent=list.length+'篇';
   document.getElementById('noteItems').innerHTML=list.length?list.map(n=>`
-    <div class="note-item${n.id===currentId?' active':''}${selectMode?' select-mode':''}" onclick="${selectMode?`toggleNoteSelect('${n.id}')`:`openNote('${n.id}')`}">
-      ${selectMode?`<input type="checkbox" class="note-checkbox" ${selectedIds.has(n.id)?'checked':''} onclick="event.stopPropagation();toggleNoteSelect('${n.id}')">`:''}
-      <div class="note-item-content">
-        <div class="note-title">${escapeHtml(n.title||'无标题')}</div>
-        <div class="note-preview">${escapeHtml((n.content||'').replace(/!\[.*?\]\(data:.*?\)/g,'[图片]').replace(/[#\->\`*!]/g,'').slice(0,50))}</div>
-        <div class="note-meta">
-          ${(n.tags||[]).slice(0,3).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join('')}
-          <span class="note-date">${(n.updated_at||'').slice(0,10)}</span>
-        </div>
+    <div class="note-item${n.id===currentId?' active':''}" onclick="openNote('${n.id}')">
+      <div class="note-title">${escapeHtml(n.title||'无标题')}</div>
+      <div class="note-preview">${escapeHtml((n.content||'').replace(/!\[.*?\]\(data:.*?\)/g,'[图片]').replace(/[#\->\`*!]/g,'').slice(0,50))}</div>
+      <div class="note-meta">
+        ${(n.tags||[]).slice(0,3).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join('')}
+        <span class="note-date">${(n.updated_at||'').slice(0,10)}</span>
       </div>
     </div>`).join(''):'<div class="loading">暂无笔记</div>';
-  updateBatchBar();
-}
-
-// ── 新增：批量删除笔记 ──────────────────────────────────
-function getVisibleNotes(){
-  const q=document.getElementById('searchInput').value.trim().toLowerCase();
-  let list=filtered();
-  if(q)list=list.filter(n=>(n.title||'').toLowerCase().includes(q)||(n.content||'').toLowerCase().includes(q)||((n.tags||[]).join(' ')).toLowerCase().includes(q));
-  return list;
-}
-
-function toggleSelectMode(){
-  selectMode=!selectMode;
-  selectedIds.clear();
-  const btn=document.getElementById('batchModeBtn');
-  const bar=document.getElementById('batchActionBar');
-  if(selectMode){
-    btn.textContent='取消';btn.classList.add('active');
-    bar.style.display='flex';
-  } else {
-    btn.textContent='批量删除';btn.classList.remove('active');
-    bar.style.display='none';
-  }
-  renderList();
-}
-
-function toggleNoteSelect(id){
-  if(selectedIds.has(id))selectedIds.delete(id);else selectedIds.add(id);
-  renderList();
-}
-
-function selectAllVisible(){
-  const list=getVisibleNotes();
-  const allSelected=list.length>0&&list.every(n=>selectedIds.has(n.id));
-  if(allSelected){list.forEach(n=>selectedIds.delete(n.id));}
-  else{list.forEach(n=>selectedIds.add(n.id));}
-  renderList();
-}
-
-function updateBatchBar(){
-  const cntEl=document.getElementById('selectedCount');
-  if(!cntEl)return;
-  cntEl.textContent=selectedIds.size;
-  const allBtn=document.getElementById('selectAllBtn');
-  const list=getVisibleNotes();
-  const allSelected=list.length>0&&list.every(n=>selectedIds.has(n.id));
-  if(allBtn)allBtn.textContent=allSelected?'取消全选':'全选';
-}
-
-async function deleteSelectedNotes(){
-  if(selectedIds.size===0){toast('请先选择要删除的笔记');return;}
-  const count=selectedIds.size;
-  if(!confirm(`确定删除选中的 ${count} 篇笔记？此操作不可恢复。`))return;
-  const ids=Array.from(selectedIds);
-  const savedIds=ids.filter(id=>{const n=notes.find(x=>x.id===id);return n&&n._saved!==false;});
-  const unsavedIds=ids.filter(id=>!savedIds.includes(id));
-  const actuallyDeleted=new Set(unsavedIds); // 还没存进数据库的草稿，直接算删除成功
-  try{
-    if(savedIds.length){
-      const r=await fetch(API+'?id=in.('+savedIds.join(',')+')',{method:'DELETE',headers:{...HEADERS,'Prefer':'return=representation'}});
-      if(!r.ok)throw new Error(await r.text());
-      const result=await r.json();
-      (result||[]).forEach(row=>actuallyDeleted.add(row.id));
-    }
-    notes=notes.filter(n=>!actuallyDeleted.has(n.id));
-    if(currentId&&actuallyDeleted.has(currentId)){
-      currentId=null;
-      document.getElementById('emptyState').style.display='';
-      document.getElementById('editorContent').style.display='none';
-    }
-    selectMode=false;selectedIds.clear();
-    document.getElementById('batchModeBtn').textContent='批量删除';
-    document.getElementById('batchModeBtn').classList.remove('active');
-    document.getElementById('batchActionBar').style.display='none';
-    if(actuallyDeleted.size<count){
-      toast(`只成功删除了 ${actuallyDeleted.size}/${count} 篇，数据库可能没开启 DELETE 权限(RLS)，请检查`,4500);
-    } else {
-      toast(`已删除 ${count} 篇笔记`);
-    }
-    renderAll();
-  }catch(e){
-    console.error('批量删除失败:',e);
-    toast('批量删除失败: '+e.message,3000);
-  }
 }
 
 function escapeHtml(str){
@@ -1134,21 +1044,7 @@ async function deleteNote(){
   if(!currentId)return;
   if(!confirm('确定删除这条笔记？'))return;
   const n=notes.find(x=>x.id===currentId);
-  if(n&&n._saved!==false){
-    try{
-      const r=await fetch(API+'?id=eq.'+currentId,{method:'DELETE',headers:{...HEADERS,'Prefer':'return=representation'}});
-      if(!r.ok) throw new Error(await r.text());
-      const result=await r.json();
-      if(!Array.isArray(result)||result.length===0){
-        toast('删除失败：数据库没有实际删除这条记录，很可能是 Supabase 表的 RLS 没有开启 DELETE 权限，请检查',4500);
-        return;
-      }
-    }catch(e){
-      console.error('删除失败:',e);
-      toast('删除失败: '+e.message,3000);
-      return;
-    }
-  }
+  if(n&&n._saved)await fetch(API+'?id=eq.'+currentId,{method:'DELETE',headers:HEADERS});
   notes=notes.filter(x=>x.id!==currentId);currentId=null;
   document.getElementById('emptyState').style.display='';
   document.getElementById('editorContent').style.display='none';
