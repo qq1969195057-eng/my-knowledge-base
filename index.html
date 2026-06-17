@@ -384,8 +384,30 @@ async function downloadPDF(){
       remaining -= pageH;
     }
 
-    pdf.save((title+'.pdf').replace(/[\\/:*?"<>|]/g,'_'));
-    toast('✓ 已下载 '+title+'.pdf');
+    // 改用手动构造Blob下载，比 pdf.save() 更可靠，避免生成损坏文件
+    const pdfBlob = pdf.output('blob');
+
+    // 校验PDF文件头，确保生成的是有效PDF（避免下载损坏文件）
+    const headerCheck = await pdfBlob.slice(0,5).text();
+    if(headerCheck !== '%PDF-'){
+      throw new Error('生成的PDF文件头无效');
+    }
+    if(pdfBlob.size < 500){
+      throw new Error('生成的PDF文件过小，可能损坏');
+    }
+
+    const safeTitle = (title+'.pdf').replace(/[\\/:*?"<>|]/g,'_');
+    const blobUrl = URL.createObjectURL(pdfBlob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = safeTitle;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    // 延迟释放URL，确保下载已经开始读取
+    setTimeout(()=>URL.revokeObjectURL(blobUrl), 3000);
+
+    toast('✓ 已下载 '+safeTitle);
   } catch(e){
     console.error('html2canvas方式失败，改用打印方式', e);
     toast('改用打印方式生成PDF...');
