@@ -221,7 +221,7 @@ const API = SUPABASE_URL + '/rest/v1/notes';
 const STORAGE_API = SUPABASE_URL + '/storage/v1/object';
 const HEADERS = {'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
 
-console.log('知识库 build: 2026-06-17-fix7 (修复化学式自动识别：调整画图时机+过滤误判的人名反应名，其余修复同fix6)');
+console.log('知识库 build: 2026-06-17-fix8 (自动识别化学式：画不出来的优雅降级为普通文字，不再留空壳样式框)');
 
 let notes=[], currentId=null, currentCat='全部', viewMode='edit';
 // ── 新增：批量删除相关状态 ──
@@ -742,7 +742,7 @@ function renderChemStructures(){
         label.textContent = f.formula;
         wrap.appendChild(label);
         frag.appendChild(wrap);
-        pendingRenders.push({canvas: canvas, smiles: f.smiles, formula: f.formula});
+        pendingRenders.push({wrap: wrap, canvas: canvas, smiles: f.smiles, formula: f.formula});
 
         prev = f.end;
       });
@@ -752,8 +752,14 @@ function renderChemStructures(){
       parent.replaceChild(frag, tn);
 
       // 此时所有元素已经真正接入页面DOM，再开始画图（SmilesDrawer内部测量文字尺寸需要元素已挂载在文档中）
+      // 任何一步失败，都把整个占位框还原成普通文字，不留"看起来坏掉的空盒子"
       pendingRenders.forEach(function(item){
-        var cv = item.canvas, sm = item.smiles, fw = item.formula;
+        var cv = item.canvas, sm = item.smiles, fw = item.formula, wrapEl = item.wrap;
+        function fallbackToText(){
+          if(wrapEl && wrapEl.parentNode){
+            wrapEl.parentNode.replaceChild(document.createTextNode(fw), wrapEl);
+          }
+        }
         try{
           var drawer = new SmilesDrawer.Drawer({width:200,height:130,
             themes:{light:{C:'#1a1a1a',O:'#dc2626',N:'#4f46e5',S:'#d97706',
@@ -763,15 +769,15 @@ function renderChemStructures(){
               drawer.draw(tree, cv, 'light');
             }catch(drawErr){
               console.error('[chem] draw失败，原式：', fw, ' smiles：', sm, ' 错误：', drawErr);
-              cv.style.display='none';
+              fallbackToText();
             }
           }, function(parseErr){
             console.error('[chem] SMILES解析失败，原式：', fw, ' smiles：', sm, ' 错误：', parseErr);
-            cv.style.display='none';
+            fallbackToText();
           });
         }catch(e){
           console.error('[chem] 初始化失败，原式：', fw, ' smiles：', sm, ' 错误：', e);
-          cv.style.display='none';
+          fallbackToText();
         }
       });
     });
