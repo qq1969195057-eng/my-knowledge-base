@@ -221,7 +221,7 @@ const API = SUPABASE_URL + '/rest/v1/notes';
 const STORAGE_API = SUPABASE_URL + '/storage/v1/object';
 const HEADERS = {'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
 
-console.log('知识库 build: 2026-06-17-fix5 (含删除校验修复 + 防缓存 + 化学结构图绘图器修复)');
+console.log('知识库 build: 2026-06-17-fix6 (含删除校验/防缓存/绘图器修复 + 化学结构渲染失败时打印详细报错)');
 
 let notes=[], currentId=null, currentCat='全部', viewMode='edit';
 // ── 新增：批量删除相关状态 ──
@@ -746,12 +746,20 @@ function renderChemStructures(){
               themes:{light:{C:'#1a1a1a',O:'#dc2626',N:'#4f46e5',S:'#d97706',
                 F:'#059669',Cl:'#059669',Br:'#7c3aed',I:'#7c3aed',H:'#888',background:'#f9f9ff'}}});
             SmilesDrawer.parse(sm, function(tree){
-              drawer.draw(tree, cv, 'light');
-            }, function(){
-              // 解析失败：只显示原式文字
+              try{
+                drawer.draw(tree, cv, 'light');
+              }catch(drawErr){
+                console.error('[chem] draw失败，原式：', fw, ' smiles：', sm, ' 错误：', drawErr);
+                cv.style.display='none';
+              }
+            }, function(parseErr){
+              console.error('[chem] SMILES解析失败，原式：', fw, ' smiles：', sm, ' 错误：', parseErr);
               cv.style.display='none';
             });
-          }catch(e){ cv.style.display='none'; }
+          }catch(e){
+            console.error('[chem] 初始化失败，原式：', fw, ' smiles：', sm, ' 错误：', e);
+            cv.style.display='none';
+          }
         })(canvas, f.smiles, f.formula);
 
         prev = f.end;
@@ -778,11 +786,18 @@ function drawSmiles(smiles, targetEl, w, h, inline){
       themes:{light:{C:'#1a1a1a',O:'#dc2626',N:'#4f46e5',S:'#d97706',
         F:'#059669',Cl:'#059669',Br:'#7c3aed',I:'#7c3aed',H:'#888',background:'#f9f9ff'}}});
     SmilesDrawer.parse(smiles, function(tree){
-      drawer.draw(tree, canvas, 'light');
-    }, function(){
+      try{
+        drawer.draw(tree, canvas, 'light');
+      }catch(drawErr){
+        console.error('[chem] drawSmiles draw失败，smiles：', smiles, ' 错误：', drawErr);
+        wrapper.innerHTML='<span class="chem-error">无法渲染: '+escapeHtml(smiles)+'</span>';
+      }
+    }, function(parseErr){
+      console.error('[chem] drawSmiles 解析失败，smiles：', smiles, ' 错误：', parseErr);
       wrapper.innerHTML='<span class="chem-error">无法渲染: '+escapeHtml(smiles)+'</span>';
     });
   }catch(e){
+    console.error('[chem] drawSmiles 初始化失败，smiles：', smiles, ' 错误：', e);
     wrapper.innerHTML='<span class="chem-error">错误: '+escapeHtml(smiles)+'</span>';
   }
 }
