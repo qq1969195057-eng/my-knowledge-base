@@ -221,7 +221,7 @@ const API = SUPABASE_URL + '/rest/v1/notes';
 const STORAGE_API = SUPABASE_URL + '/storage/v1/object';
 const HEADERS = {'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
 
-console.log('知识库 build: 2026-06-17-fix6 (含删除校验/防缓存/绘图器修复 + 化学结构渲染失败时打印详细报错)');
+console.log('知识库 build: 2026-06-17-fix7 (修复化学式自动识别：调整画图时机+过滤误判的人名反应名，其余修复同fix6)');
 
 let notes=[], currentId=null, currentCat='全部', viewMode='edit';
 // ── 新增：批量删除相关状态 ──
@@ -708,6 +708,8 @@ function renderChemStructures(){
         if(/^[a-z]+$/.test(formula)) continue;
         // 跳过已知非化学式词（HTML标签残留等）
         if(formula.length < 4) continue;
+        // 跳过人名/反应名（如Kolbe-Schmitt、Cannizzaro）：真正的化学式不会有连续3个以上小写字母
+        if(/[a-z]{3,}/.test(formula)) continue;
         // 转为SMILES
         var smiles = formulaToSmiles(formula);
         if(!smiles || smiles.length < 2) continue;
@@ -720,6 +722,7 @@ function renderChemStructures(){
       var parent = tn.parentNode;
       var frag = document.createDocumentFragment();
       var prev = 0;
+      var pendingRenders = []; // 先收集待画的canvas，等真正接入DOM之后再画
       fragments.forEach(function(f){
         // 之前的普通文字
         if(f.start > prev){
@@ -739,28 +742,7 @@ function renderChemStructures(){
         label.textContent = f.formula;
         wrap.appendChild(label);
         frag.appendChild(wrap);
-        // 异步渲染
-        (function(cv, sm, fw){
-          try{
-            var drawer = new SmilesDrawer.Drawer({width:200,height:130,
-              themes:{light:{C:'#1a1a1a',O:'#dc2626',N:'#4f46e5',S:'#d97706',
-                F:'#059669',Cl:'#059669',Br:'#7c3aed',I:'#7c3aed',H:'#888',background:'#f9f9ff'}}});
-            SmilesDrawer.parse(sm, function(tree){
-              try{
-                drawer.draw(tree, cv, 'light');
-              }catch(drawErr){
-                console.error('[chem] draw失败，原式：', fw, ' smiles：', sm, ' 错误：', drawErr);
-                cv.style.display='none';
-              }
-            }, function(parseErr){
-              console.error('[chem] SMILES解析失败，原式：', fw, ' smiles：', sm, ' 错误：', parseErr);
-              cv.style.display='none';
-            });
-          }catch(e){
-            console.error('[chem] 初始化失败，原式：', fw, ' smiles：', sm, ' 错误：', e);
-            cv.style.display='none';
-          }
-        })(canvas, f.smiles, f.formula);
+        pendingRenders.push({canvas: canvas, smiles: f.smiles, formula: f.formula});
 
         prev = f.end;
       });
@@ -768,6 +750,30 @@ function renderChemStructures(){
         frag.appendChild(document.createTextNode(text.slice(prev)));
       }
       parent.replaceChild(frag, tn);
+
+      // 此时所有元素已经真正接入页面DOM，再开始画图（SmilesDrawer内部测量文字尺寸需要元素已挂载在文档中）
+      pendingRenders.forEach(function(item){
+        var cv = item.canvas, sm = item.smiles, fw = item.formula;
+        try{
+          var drawer = new SmilesDrawer.Drawer({width:200,height:130,
+            themes:{light:{C:'#1a1a1a',O:'#dc2626',N:'#4f46e5',S:'#d97706',
+              F:'#059669',Cl:'#059669',Br:'#7c3aed',I:'#7c3aed',H:'#888',background:'#f9f9ff'}}});
+          SmilesDrawer.parse(sm, function(tree){
+            try{
+              drawer.draw(tree, cv, 'light');
+            }catch(drawErr){
+              console.error('[chem] draw失败，原式：', fw, ' smiles：', sm, ' 错误：', drawErr);
+              cv.style.display='none';
+            }
+          }, function(parseErr){
+            console.error('[chem] SMILES解析失败，原式：', fw, ' smiles：', sm, ' 错误：', parseErr);
+            cv.style.display='none';
+          });
+        }catch(e){
+          console.error('[chem] 初始化失败，原式：', fw, ' smiles：', sm, ' 错误：', e);
+          cv.style.display='none';
+        }
+      });
     });
   });
 }
