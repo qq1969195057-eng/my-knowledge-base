@@ -296,12 +296,21 @@ async function downloadPDF(){
 
     const FONT = 'SourceHanSans-Normal';
     let fontName = 'helvetica'; // 默认回退字体
+
+    // 关键修复：pdf.setFont() 在字体不存在时不会抛错，而是静默回退到默认字体，
+    // 必须用 getFontList() 主动核实字体确实已注册到VFS中，不能仅凭setFont不报错就认为成功。
     if(fontLoaded){
-      try{
+      const registeredFonts = pdf.getFontList(); // 形如 {helvetica:[...], 'sourcehansans-normal':[...]}
+      console.log('已注册字体列表：', registeredFonts);
+      // 字体名在fontmap中查找时会被转小写比较，故同时检查原名和小写名
+      const foundKey = Object.keys(registeredFonts).find(
+        k => k.toLowerCase() === FONT.toLowerCase()
+      );
+      if(foundKey){
         pdf.setFont(FONT, 'normal');
         fontName = FONT;
-      }catch(setFontErr){
-        console.warn('设置中文字体失败，使用默认字体', setFontErr);
+      } else {
+        console.warn('字体脚本已加载，但字体未出现在getFontList()中，可能脚本内容与预期不符。完整列表：', registeredFonts);
       }
     }
 
@@ -548,7 +557,7 @@ async function downloadPDF(){
     document.body.removeChild(a);
     setTimeout(()=>URL.revokeObjectURL(blobUrl), 3000);
 
-    toast('✓ 已下载 '+safeTitle);
+    toast(fontName===FONT ? ('✓ 已下载 '+safeTitle) : ('⚠ 已下载，但中文字体未加载成功，中文可能显示异常'), fontName===FONT ? 2000 : 5000);
   } catch(e){
     console.error('PDF生成失败', e);
     alert('PDF生成失败：' + (e && e.message ? e.message : String(e)));
