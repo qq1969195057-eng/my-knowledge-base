@@ -338,7 +338,10 @@ async function downloadPDF(){
     const {jsPDF} = window.jspdf;
     const pdf = new jsPDF({orientation:'portrait',unit:'pt',format:'a4'});
 
-    // 用 jsPDF 自带的 html() 方法渲染，内部仍用html2canvas但处理分页、缩放更完善
+    // 用 jsPDF 自带的 html() 方法渲染。
+    // 关键修复：autoPaging 必须用 'slice'（按图片切片分页），不能用 'text'。
+    // 'text' 模式会让jsPDF尝试把内容转成PDF原生文字层，但PDF默认字体不含中文字形，导致中文乱码。
+    // 'slice' 模式则是纯图片渲染（用浏览器渲染好的样子直接截图分页），中文显示与预览完全一致，不会乱码。
     await new Promise((resolve, reject) => {
       pdf.html(container, {
         callback: function(doc){ resolve(doc); },
@@ -346,8 +349,8 @@ async function downloadPDF(){
         y: 24,
         width: 547,        // A4宽度595pt - 左右边距
         windowWidth: 700,  // 对应container的width，控制缩放比例
-        autoPaging: 'text',
-        html2canvas: { scale: 1.2, useCORS: true, backgroundColor: '#ffffff', logging:false }
+        autoPaging: 'slice',
+        html2canvas: { scale: 1.5, useCORS: true, backgroundColor: '#ffffff', logging:false }
       }).catch(reject);
     });
 
