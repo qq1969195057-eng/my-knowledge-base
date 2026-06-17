@@ -277,17 +277,104 @@ async function downloadPDF(){
   const title = document.getElementById('noteTitle').value || '无标题';
   const htmlBody = mdToHtml(document.getElementById('noteContent').value);
 
-  // 统一改用浏览器打印功能生成PDF（桌面端和移动端一致）
-  // 原因：html2canvas方案在不同浏览器/环境下渲染时机不稳定，容易产生空白截图，
-  // 改用浏览器原生打印对话框选择"另存为PDF"，是最可靠、不会出现空白内容的方案。
-  const win = window.open('','_blank');
-  if(!win){
-    toast('请允许弹出窗口后重试',3000);
-    return;
+  toast('正在生成PDF...');
+  try{
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    // 同时加载 html2canvas，因为 jsPDF.html() 内部依赖它来渲染DOM，但调用方式比直接用html2canvas更稳定
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+
+    const container = document.createElement('div');
+    container.style.cssText = 'width:700px;background:#fff;padding:0;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:14px;line-height:1.8;color:#1a1a1a;box-sizing:border-box;';
+    container.innerHTML = `
+      <div style="margin-bottom:20px">
+        <div style="font-size:22px;font-weight:700;color:#1a1a1a;margin-bottom:6px">${escapeHtml(title)}</div>
+        <div style="font-size:12px;color:#aaa">导出时间：${new Date().toLocaleString('zh-CN')}</div>
+      </div>
+      <hr style="border:none;border-top:1px solid #e8e8e4;margin-bottom:18px">
+      <div id="pdf-content-inner">${htmlBody}</div>`;
+
+    const pdfStyleEl = document.createElement('style');
+    pdfStyleEl.textContent = `
+      #pdf-content-inner h1{font-size:20px;font-weight:700;margin:0 0 12px;padding-bottom:8px;border-bottom:2px solid #e8e8e4}
+      #pdf-content-inner h2{font-size:17px;font-weight:600;margin:18px 0 8px;padding-bottom:4px;border-bottom:1px solid #f0f0ec}
+      #pdf-content-inner h3{font-size:15px;font-weight:600;margin:14px 0 6px;color:#333}
+      #pdf-content-inner p{margin:0 0 9px;color:#333}
+      #pdf-content-inner ul,#pdf-content-inner ol{margin:0 0 9px 20px}
+      #pdf-content-inner li{margin-bottom:3px}
+      #pdf-content-inner blockquote{border-left:3px solid #a5b4fc;padding:6px 12px;margin:10px 0;background:#f9f9ff;color:#555}
+      #pdf-content-inner code{background:#f0f0ec;padding:1px 4px;border-radius:3px;font-family:monospace;font-size:12px;color:#d63384}
+      #pdf-content-inner pre{background:#f5f5f0;padding:10px;border-radius:6px;margin:10px 0;white-space:pre-wrap}
+      #pdf-content-inner table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
+      #pdf-content-inner th{background:#ede9fe;padding:6px 8px;font-weight:600;border:1px solid #e0defa}
+      #pdf-content-inner td{padding:5px 8px;border:1px solid #e8e8e4}
+      #pdf-content-inner strong{font-weight:600}
+      #pdf-content-inner em{font-style:italic;color:#555}
+      #pdf-content-inner hr{border:none;border-top:1px solid #e8e8e4;margin:14px 0}
+      #pdf-content-inner img{max-width:100%;border-radius:6px;margin:6px 0;display:block}
+      /* 重要：化学结构图canvas在PDF导出时隐藏，因html2canvas无法可靠截取嵌套canvas内容，避免导致整体渲染失败 */
+      #pdf-content-inner .chem-block, #pdf-content-inner .chem-inline-wrap{display:none !important}
+    `;
+    document.head.appendChild(pdfStyleEl);
+
+    // 容器放在视口内可见区域之外的正常文档流位置（页面底部），而非负坐标/负z-index，确保html2canvas能正常截取
+    container.style.position = 'static';
+    const scrollHolder = document.createElement('div');
+    scrollHolder.style.cssText = 'height:0;overflow:hidden;';
+    scrollHolder.appendChild(container);
+    document.body.appendChild(scrollHolder);
+
+    // 等待图片加载完成
+    const imgs = container.querySelectorAll('img');
+    await Promise.all(Array.from(imgs).map(img => {
+      if(img.complete) return Promise.resolve();
+      return new Promise(resolve => {
+        img.onload = resolve;
+        img.onerror = resolve;
+        setTimeout(resolve, 3000);
+      });
+    }));
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+    const {jsPDF} = window.jspdf;
+    const pdf = new jsPDF({orientation:'portrait',unit:'pt',format:'a4'});
+
+    // 用 jsPDF 自带的 html() 方法渲染，内部仍用html2canvas但处理分页、缩放更完善
+    await new Promise((resolve, reject) => {
+      pdf.html(container, {
+        callback: function(doc){ resolve(doc); },
+        x: 24,
+        y: 24,
+        width: 547,        // A4宽度595pt - 左右边距
+        windowWidth: 700,  // 对应container的width，控制缩放比例
+        autoPaging: 'text',
+        html2canvas: { scale: 1.2, useCORS: true, backgroundColor: '#ffffff', logging:false }
+      }).catch(reject);
+    });
+
+    document.body.removeChild(scrollHolder);
+    document.head.removeChild(pdfStyleEl);
+
+    const pdfBlob = pdf.output('blob');
+    const headerCheck = await pdfBlob.slice(0,5).text();
+    if(headerCheck !== '%PDF-' || pdfBlob.size < 1000){
+      throw new Error('生成的PDF无效或为空');
+    }
+
+    const safeTitle = (title+'.pdf').replace(/[\\/:*?"<>|]/g,'_');
+    const blobUrl = URL.createObjectURL(pdfBlob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = safeTitle;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(blobUrl), 3000);
+
+    toast('✓ 已下载 '+safeTitle);
+  } catch(e){
+    console.error('PDF生成失败', e);
+    toast('PDF生成失败，请重试或刷新页面后再试',3000);
   }
-  win.document.write(buildPrintHtml(title, htmlBody));
-  win.document.close();
-  toast('在弹出的打印窗口中，目标选择"另存为PDF"即可下载',4000);
 }
 
 function loadScript(src){
