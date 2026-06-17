@@ -221,7 +221,7 @@ const API = SUPABASE_URL + '/rest/v1/notes';
 const STORAGE_API = SUPABASE_URL + '/storage/v1/object';
 const HEADERS = {'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
 
-console.log('知识库 build: 2026-06-17-fix4 (修复核心bug：fetchNotes加载的笔记缺少_saved标记，导致删除时跳过真正的数据库请求)');
+console.log('知识库 build: 2026-06-17-fix5 (含删除校验修复 + 防缓存 + 化学结构图绘图器修复)');
 
 let notes=[], currentId=null, currentCat='全部', viewMode='edit';
 // ── 新增：批量删除相关状态 ──
@@ -742,7 +742,7 @@ function renderChemStructures(){
         // 异步渲染
         (function(cv, sm, fw){
           try{
-            var drawer = new SmilesDrawer.SvgDrawer({width:200,height:130,
+            var drawer = new SmilesDrawer.Drawer({width:200,height:130,
               themes:{light:{C:'#1a1a1a',O:'#dc2626',N:'#4f46e5',S:'#d97706',
                 F:'#059669',Cl:'#059669',Br:'#7c3aed',I:'#7c3aed',H:'#888',background:'#f9f9ff'}}});
             SmilesDrawer.parse(sm, function(tree){
@@ -774,7 +774,7 @@ function drawSmiles(smiles, targetEl, w, h, inline){
   wrapper.appendChild(canvas);
   targetEl.replaceWith ? targetEl.replaceWith(wrapper) : targetEl.parentNode.replaceChild(wrapper, targetEl);
   try{
-    var drawer = new SmilesDrawer.SvgDrawer({width:w, height:h,
+    var drawer = new SmilesDrawer.Drawer({width:w, height:h,
       themes:{light:{C:'#1a1a1a',O:'#dc2626',N:'#4f46e5',S:'#d97706',
         F:'#059669',Cl:'#059669',Br:'#7c3aed',I:'#7c3aed',H:'#888',background:'#f9f9ff'}}});
     SmilesDrawer.parse(smiles, function(tree){
