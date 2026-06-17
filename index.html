@@ -277,147 +277,17 @@ async function downloadPDF(){
   const title = document.getElementById('noteTitle').value || '无标题';
   const htmlBody = mdToHtml(document.getElementById('noteContent').value);
 
-  // 电脑端用 jsPDF 直接下载，手机端用打印
-  const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-  if(isMobile){
-    const win = window.open('','_blank');
-    if(!win){toast('请允许弹出窗口');return;}
-    win.document.write(buildPrintHtml(title, htmlBody));
-    win.document.close();
-    toast('请选择「存储为PDF」');
+  // 统一改用浏览器打印功能生成PDF（桌面端和移动端一致）
+  // 原因：html2canvas方案在不同浏览器/环境下渲染时机不稳定，容易产生空白截图，
+  // 改用浏览器原生打印对话框选择"另存为PDF"，是最可靠、不会出现空白内容的方案。
+  const win = window.open('','_blank');
+  if(!win){
+    toast('请允许弹出窗口后重试',3000);
     return;
   }
-
-  toast('正在生成PDF...');
-  try{
-    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
-    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
-
-    const container = document.createElement('div');
-    // 修复：改用 visibility:hidden + 固定在视口内（top:0,left:0），而非 left:-9999px
-    // html2canvas 对屏幕外元素（如 left:-9999px）渲染不稳定，常导致空白截图
-    container.style.cssText = 'position:absolute;top:0;left:0;width:794px;background:#fff;padding:48px 56px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:14px;line-height:1.8;color:#1a1a1a;box-sizing:border-box;z-index:-9999;visibility:visible;opacity:1;';
-    container.innerHTML = `
-      <div style="margin-bottom:20px">
-        <div style="font-size:22px;font-weight:700;color:#1a1a1a;margin-bottom:6px">${escapeHtml(title)}</div>
-        <div style="font-size:12px;color:#aaa">导出时间：${new Date().toLocaleString('zh-CN')}</div>
-      </div>
-      <hr style="border:none;border-top:1px solid #e8e8e4;margin-bottom:18px">
-      <div id="pdf-content-inner">${htmlBody}</div>`;
-
-    // 样式作为单独的 <style> 元素插入 head（而非塞进 innerHTML 字符串），确保被解析为生效样式
-    const pdfStyleEl = document.createElement('style');
-    pdfStyleEl.id = 'pdf-export-style';
-    pdfStyleEl.textContent = `
-      #pdf-content-inner h1{font-size:20px;font-weight:700;margin:0 0 12px;padding-bottom:8px;border-bottom:2px solid #e8e8e4}
-      #pdf-content-inner h2{font-size:17px;font-weight:600;margin:18px 0 8px;padding-bottom:4px;border-bottom:1px solid #f0f0ec}
-      #pdf-content-inner h3{font-size:15px;font-weight:600;margin:14px 0 6px;color:#333}
-      #pdf-content-inner p{margin:0 0 9px;color:#333}
-      #pdf-content-inner ul,#pdf-content-inner ol{margin:0 0 9px 20px}
-      #pdf-content-inner li{margin-bottom:3px}
-      #pdf-content-inner blockquote{border-left:3px solid #a5b4fc;padding:6px 12px;margin:10px 0;background:#f9f9ff;color:#555}
-      #pdf-content-inner code{background:#f0f0ec;padding:1px 4px;border-radius:3px;font-family:monospace;font-size:12px;color:#d63384}
-      #pdf-content-inner pre{background:#f5f5f0;padding:10px;border-radius:6px;margin:10px 0}
-      #pdf-content-inner table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
-      #pdf-content-inner th{background:#ede9fe;padding:6px 8px;font-weight:600;border:1px solid #e0defa}
-      #pdf-content-inner td{padding:5px 8px;border:1px solid #e8e8e4}
-      #pdf-content-inner tr:nth-child(even){background:#f9f9ff}
-      #pdf-content-inner strong{font-weight:600}
-      #pdf-content-inner em{font-style:italic;color:#555}
-      #pdf-content-inner hr{border:none;border-top:1px solid #e8e8e4;margin:14px 0}
-      #pdf-content-inner img{max-width:100%;border-radius:6px;margin:6px 0;display:block}
-    `;
-    document.head.appendChild(pdfStyleEl);
-    document.body.appendChild(container);
-
-    // 等待图片加载完成（若笔记含图片，html2canvas 截图时图片若未加载完会变白）
-    const imgs = container.querySelectorAll('img');
-    await Promise.all(Array.from(imgs).map(img => {
-      if(img.complete) return Promise.resolve();
-      return new Promise(resolve => {
-        img.onload = resolve;
-        img.onerror = resolve;
-        setTimeout(resolve, 3000); // 超时保护，最多等3秒
-      });
-    }));
-
-    // 额外等待一帧，确保浏览器完成布局与样式计算
-    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-
-    const canvas = await html2canvas(container,{
-      scale:2,
-      useCORS:true,
-      backgroundColor:'#ffffff',
-      logging:false,
-      windowWidth: container.scrollWidth,
-      windowHeight: container.scrollHeight,
-      height: container.scrollHeight,
-      width: container.scrollWidth
-    });
-
-    document.body.removeChild(container);
-    document.head.removeChild(pdfStyleEl);
-
-    // 检测画布是否真的为空白（全白/全透明），若是则提示用户用打印方式
-    const ctx = canvas.getContext('2d');
-    const sample = ctx.getImageData(0, 0, Math.min(canvas.width,50), Math.min(canvas.height,50)).data;
-    let allWhite = true;
-    for(let i=0;i<sample.length;i+=4){
-      if(sample[i]!==255||sample[i+1]!==255||sample[i+2]!==255){ allWhite=false; break; }
-    }
-    if(allWhite && canvas.height < 100){
-      throw new Error('内容渲染为空');
-    }
-
-    const {jsPDF} = window.jspdf;
-    const imgData = canvas.toDataURL('image/jpeg',0.92);
-    const pageW = 210, pageH = 297;
-    const imgW = pageW;
-    const imgH = (canvas.height * imgW) / canvas.width;
-    const pdf = new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-
-    let yOffset = 0, remaining = imgH;
-    while(remaining > 0){
-      if(yOffset > 0) pdf.addPage();
-      pdf.addImage(imgData,'JPEG',0,-yOffset,imgW,imgH,undefined,'FAST');
-      yOffset += pageH;
-      remaining -= pageH;
-    }
-
-    // 改用手动构造Blob下载，比 pdf.save() 更可靠，避免生成损坏文件
-    const pdfBlob = pdf.output('blob');
-
-    // 校验PDF文件头，确保生成的是有效PDF（避免下载损坏文件）
-    const headerCheck = await pdfBlob.slice(0,5).text();
-    if(headerCheck !== '%PDF-'){
-      throw new Error('生成的PDF文件头无效');
-    }
-    if(pdfBlob.size < 500){
-      throw new Error('生成的PDF文件过小，可能损坏');
-    }
-
-    const safeTitle = (title+'.pdf').replace(/[\\/:*?"<>|]/g,'_');
-    const blobUrl = URL.createObjectURL(pdfBlob);
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = safeTitle;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    // 延迟释放URL，确保下载已经开始读取
-    setTimeout(()=>URL.revokeObjectURL(blobUrl), 3000);
-
-    toast('✓ 已下载 '+safeTitle);
-  } catch(e){
-    console.error('html2canvas方式失败，改用打印方式', e);
-    toast('改用打印方式生成PDF...');
-    // 兜底方案：html2canvas渲染失败时，自动改用打印窗口方式（更稳定，不会出现空白）
-    const win = window.open('','_blank');
-    if(!win){toast('请允许弹出窗口后重试',3000);return;}
-    win.document.write(buildPrintHtml(title, htmlBody));
-    win.document.close();
-    toast('请在弹出窗口中选择「存储为PDF」');
-  }
+  win.document.write(buildPrintHtml(title, htmlBody));
+  win.document.close();
+  toast('在弹出的打印窗口中，目标选择"另存为PDF"即可下载',4000);
 }
 
 function loadScript(src){
