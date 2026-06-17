@@ -980,13 +980,17 @@ async function deleteSelectedNotes(){
   if(!confirm(`确定删除选中的 ${count} 篇笔记？此操作不可恢复。`))return;
   const ids=Array.from(selectedIds);
   const savedIds=ids.filter(id=>{const n=notes.find(x=>x.id===id);return n&&n._saved;});
+  const unsavedIds=ids.filter(id=>!savedIds.includes(id));
+  const actuallyDeleted=new Set(unsavedIds); // 还没存进数据库的草稿，直接算删除成功
   try{
     if(savedIds.length){
-      const r=await fetch(API+'?id=in.('+savedIds.join(',')+')',{method:'DELETE',headers:HEADERS});
+      const r=await fetch(API+'?id=in.('+savedIds.join(',')+')',{method:'DELETE',headers:{...HEADERS,'Prefer':'return=representation'}});
       if(!r.ok)throw new Error(await r.text());
+      const result=await r.json();
+      (result||[]).forEach(row=>actuallyDeleted.add(row.id));
     }
-    notes=notes.filter(n=>!selectedIds.has(n.id));
-    if(currentId&&selectedIds.has(currentId)){
+    notes=notes.filter(n=>!actuallyDeleted.has(n.id));
+    if(currentId&&actuallyDeleted.has(currentId)){
       currentId=null;
       document.getElementById('emptyState').style.display='';
       document.getElementById('editorContent').style.display='none';
@@ -995,7 +999,11 @@ async function deleteSelectedNotes(){
     document.getElementById('batchModeBtn').textContent='批量删除';
     document.getElementById('batchModeBtn').classList.remove('active');
     document.getElementById('batchActionBar').style.display='none';
-    toast(`已删除 ${count} 篇笔记`);
+    if(actuallyDeleted.size<count){
+      toast(`只成功删除了 ${actuallyDeleted.size}/${count} 篇，数据库可能没开启 DELETE 权限(RLS)，请检查`,4500);
+    } else {
+      toast(`已删除 ${count} 篇笔记`);
+    }
     renderAll();
   }catch(e){
     console.error('批量删除失败:',e);
@@ -1096,7 +1104,21 @@ async function deleteNote(){
   if(!currentId)return;
   if(!confirm('确定删除这条笔记？'))return;
   const n=notes.find(x=>x.id===currentId);
-  if(n&&n._saved)await fetch(API+'?id=eq.'+currentId,{method:'DELETE',headers:HEADERS});
+  if(n&&n._saved){
+    try{
+      const r=await fetch(API+'?id=eq.'+currentId,{method:'DELETE',headers:{...HEADERS,'Prefer':'return=representation'}});
+      if(!r.ok) throw new Error(await r.text());
+      const result=await r.json();
+      if(!Array.isArray(result)||result.length===0){
+        toast('删除失败：数据库没有实际删除这条记录，很可能是 Supabase 表的 RLS 没有开启 DELETE 权限，请检查',4500);
+        return;
+      }
+    }catch(e){
+      console.error('删除失败:',e);
+      toast('删除失败: '+e.message,3000);
+      return;
+    }
+  }
   notes=notes.filter(x=>x.id!==currentId);currentId=null;
   document.getElementById('emptyState').style.display='';
   document.getElementById('editorContent').style.display='none';
