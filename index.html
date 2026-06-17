@@ -221,7 +221,7 @@ const API = SUPABASE_URL + '/rest/v1/notes';
 const STORAGE_API = SUPABASE_URL + '/storage/v1/object';
 const HEADERS = {'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
 
-console.log('知识库 build: 2026-06-17-fix3 (含批量删除/单条删除的数据库校验修复 + 拉取列表防缓存)');
+console.log('知识库 build: 2026-06-17-fix4 (修复核心bug：fetchNotes加载的笔记缺少_saved标记，导致删除时跳过真正的数据库请求)');
 
 let notes=[], currentId=null, currentCat='全部', viewMode='edit';
 // ── 新增：批量删除相关状态 ──
@@ -842,6 +842,7 @@ async function fetchNotes(){
   const r=await fetch(API+'?order=updated_at.desc',{headers:{...HEADERS,'Prefer':'return=representation','Cache-Control':'no-cache','Pragma':'no-cache'},cache:'no-store'});
   notes=await r.json();
   if(!Array.isArray(notes)) notes=[];
+  notes.forEach(n=>{ n._saved=true; }); // 从数据库加载的笔记本来就已经存在，必须标记为已保存，否则删除时会被当成"本地草稿"而跳过真正的删除请求
   renderAll();
 }
 
@@ -981,7 +982,7 @@ async function deleteSelectedNotes(){
   const count=selectedIds.size;
   if(!confirm(`确定删除选中的 ${count} 篇笔记？此操作不可恢复。`))return;
   const ids=Array.from(selectedIds);
-  const savedIds=ids.filter(id=>{const n=notes.find(x=>x.id===id);return n&&n._saved;});
+  const savedIds=ids.filter(id=>{const n=notes.find(x=>x.id===id);return n&&n._saved!==false;});
   const unsavedIds=ids.filter(id=>!savedIds.includes(id));
   const actuallyDeleted=new Set(unsavedIds); // 还没存进数据库的草稿，直接算删除成功
   try{
@@ -1106,7 +1107,7 @@ async function deleteNote(){
   if(!currentId)return;
   if(!confirm('确定删除这条笔记？'))return;
   const n=notes.find(x=>x.id===currentId);
-  if(n&&n._saved){
+  if(n&&n._saved!==false){
     try{
       const r=await fetch(API+'?id=eq.'+currentId,{method:'DELETE',headers:{...HEADERS,'Prefer':'return=representation'}});
       if(!r.ok) throw new Error(await r.text());
