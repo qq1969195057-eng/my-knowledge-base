@@ -83,6 +83,7 @@ select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;back
 .preview-pane pre code{background:none;padding:0;color:#1a1a1a}
 .preview-pane img{max-width:100%;border-radius:8px;margin:8px 0;box-shadow:0 2px 8px rgba(0,0,0,0.1);display:block}
 .preview-pane strong{font-weight:600;color:#1a1a1a}
+.hl-mark{background:transparent;color:#dc2626;font-weight:600;padding:0}
 .preview-pane em{font-style:italic;color:#555}
 .preview-pane hr{border:none;border-top:1px solid #e8e8e4;margin:16px 0}
 .preview-pane table{width:100%;border-collapse:collapse;margin:10px 0;font-size:17px}
@@ -177,6 +178,7 @@ body.dark-mode .preview-pane code{background:#222;color:#ff79c6}
 body.dark-mode .preview-pane pre{background:#1a1a1a}
 body.dark-mode .preview-pane pre code{color:#e8e8e8}
 body.dark-mode .preview-pane strong{color:#fff}
+body.dark-mode .hl-mark{color:#f87171}
 body.dark-mode .preview-pane em{color:#bbb}
 body.dark-mode .preview-pane hr{border-top-color:#2a2a2a}
 body.dark-mode .preview-pane th{background:#222040;border-color:#333;color:#e8e8e8}
@@ -707,8 +709,8 @@ function mdToHtml(md){
   });
 
   let quizBlocks = [];
-  md = md.replace(/^((?:[A-Z][.、]\s*.+\n){2,}\n?(?:正确答案|答案)[：:]\s*([A-Z])\s*$)/gm, function(match, block, answer) {
-    var optLines = block.trim().split('\n').filter(function(l){ return l.trim() !== ''; });
+  md = md.replace(/^((?:[A-Z][.、]\s*.+\n\n?){2,}\n?(?:正确答案|答案)[：:]\s*([A-Z])\s*$)/gm, function(match, block, answer) {
+    var optLines = block.split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l !== ''; });
     optLines.pop(); // 去掉"(正确)答案：X"那一行
     var opts = optLines.map(function(line){
       var m = line.match(/^([A-Z])[.、]\s*(.+)$/);
@@ -777,6 +779,7 @@ function mdToHtml(md){
   }
 
   h = out.join('\n');
+  h = h.replace(/==(.+?)==/g, '<mark class="hl-mark">$1</mark>');
   h = h.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
   h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   h = h.replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');
