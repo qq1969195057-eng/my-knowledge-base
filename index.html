@@ -953,43 +953,84 @@ function checkQuizAnswer(el){
 // ══════════════════════════════════════════════════════════
 var HL_SYMBOLS = {red:'==', orange:'^^', blue:'~~', green:'++'};
 var HL_SYM_LIST = ['==','^^','~~','++'];
+var HL_CTX_LEN = 12; // 上下文锚定长度：选区前后各取多少个字符用于唯一定位
 
-// 计算 text 在 content 中所有出现位置（不论是否已标记），返回 [{idx, marked, sym}, ...]
-function findAllOccurrences(content, text){
-  var results = [];
+// 跳过紧邻的标记符号（如果某侧文本以==/^^/~~/++开头或结尾，去掉这2个字符再比较）
+function stripAdjacentSymbol(s, fromStart){
+  for(var i=0;i<HL_SYM_LIST.length;i++){
+    var sym = HL_SYM_LIST[i];
+    if(fromStart && s.slice(0,2)===sym) return s.slice(2);
+    if(!fromStart && s.slice(-2)===sym) return s.slice(0,-2);
+  }
+  return s;
+}
+
+// 在 content 中，用"前文+选中文字+后文"的组合精确查找唯一位置
+// ctxBefore/ctxAfter 是选区在预览区中前后各HL_CTX_LEN个字符的纯文本（可能为空，代表到了文章边界）
+// 返回 {idx, marked, sym} 或 null
+function locateByContext(content, text, ctxBefore, ctxAfter){
   var searchFrom = 0;
+  var candidates = [];
   while(true){
     var found = content.indexOf(text, searchFrom);
     if(found === -1) break;
-    var before2 = content.slice(Math.max(0,found-2), found);
-    var after2 = content.slice(found+text.length, found+text.length+2);
-    var marked = HL_SYM_LIST.indexOf(before2) !== -1 && before2 === after2;
-    results.push({idx: found, marked: marked, sym: marked ? before2 : null});
+    candidates.push(found);
     searchFrom = found + text.length;
   }
-  return results;
+  if(candidates.length === 0) return null;
+  if(candidates.length === 1){
+    return buildOccInfo(content, text, candidates[0]);
+  }
+  // 多个候选位置时，用上下文做精确匹配：比较前后若干字符（跳过可能存在的标记符号本身）
+  var bestIdx = -1, bestScore = -1;
+  for(var i=0;i<candidates.length;i++){
+    var idx = candidates[i];
+    var before = content.slice(Math.max(0, idx-HL_CTX_LEN-2), idx);
+    var after = content.slice(idx+text.length, idx+text.length+HL_CTX_LEN+2);
+    before = stripAdjacentSymbol(before, false);
+    after = stripAdjacentSymbol(after, true);
+    // 计算与目标上下文的匹配得分：末尾/开头重合的字符数
+    var score = 0;
+    var bLen = Math.min(before.length, ctxBefore.length);
+    for(var k=1;k<=bLen;k++){
+      if(before.slice(-k) === ctxBefore.slice(-k)) score = k; else break;
+    }
+    var aLen = Math.min(after.length, ctxAfter.length);
+    for(var k=1;k<=aLen;k++){
+      if(after.slice(0,k) === ctxAfter.slice(0,k)) score += k; else break;
+    }
+    if(score > bestScore){ bestScore = score; bestIdx = idx; }
+  }
+  return buildOccInfo(content, text, bestIdx);
 }
 
-// 计算"selectedText"在previewPane的可见文本中，选区之前已经出现了几次同样的文字（0-based序号）
-function computeOccurrenceIndex(previewPane, range, selectedText){
-  if(!selectedText) return 0;
-  var preRange = document.createRange();
-  preRange.selectNodeContents(previewPane);
-  preRange.setEnd(range.startContainer, range.startOffset);
-  var textBefore = preRange.toString();
-  var count = 0, searchFrom = 0;
-  while(true){
-    var found = textBefore.indexOf(selectedText, searchFrom);
-    if(found === -1) break;
-    count++;
-    searchFrom = found + selectedText.length;
-  }
-  return count; // 0-based：选区前出现了count次，所以选区本身是第count次（0-indexed）
+function buildOccInfo(content, text, idx){
+  var before2 = content.slice(Math.max(0,idx-2), idx);
+  var after2 = content.slice(idx+text.length, idx+text.length+2);
+  var marked = HL_SYM_LIST.indexOf(before2) !== -1 && before2 === after2;
+  return {idx: idx, marked: marked, sym: marked ? before2 : null};
+}
+
+// 提取选区前后HL_CTX_LEN个字符的纯文本上下文（用于唯一定位）
+function extractContext(previewPane, range){
+  var beforeRange = document.createRange();
+  beforeRange.selectNodeContents(previewPane);
+  beforeRange.setEnd(range.startContainer, range.startOffset);
+  var fullBefore = beforeRange.toString();
+  var ctxBefore = fullBefore.slice(-HL_CTX_LEN);
+
+  var afterRange = document.createRange();
+  afterRange.selectNodeContents(previewPane);
+  afterRange.setStart(range.endContainer, range.endOffset);
+  var fullAfter = afterRange.toString();
+  var ctxAfter = fullAfter.slice(0, HL_CTX_LEN);
+
+  return {ctxBefore: ctxBefore, ctxAfter: ctxAfter};
 }
 
 (function(){
   var pendingText = ''; // 当前选中的纯文本
-  var pendingOccIndex = 0; // 该文字在预览区中的第几次出现（0-based）
+  var pendingCtx = {ctxBefore:'', ctxAfter:''}; // 选区前后的上下文，用于精确定位
   var lockClicking = false; // 按钮点击期间锁定，防止中途被其他事件清空
   var previewPane = document.getElementById('previewPane');
   var floatBtn = document.getElementById('hlFloatBtn');
@@ -1023,14 +1064,12 @@ function computeOccurrenceIndex(previewPane, range, selectedText){
       return;
     }
     pendingText = text;
-    // 计算这是预览区里第几次出现这段文字（用于精确定位，避免重复文字定位错误）
-    pendingOccIndex = computeOccurrenceIndex(previewPane, range, text);
+    pendingCtx = extractContext(previewPane, range);
     // 检测这一次具体出现是否已经被标记过（用于决定是否显示"取消标记"按钮）
     var content = document.getElementById('noteContent').value;
-    var occs = findAllOccurrences(content, text);
-    var thisOcc = occs[pendingOccIndex];
+    var hit = locateByContext(content, text, pendingCtx.ctxBefore, pendingCtx.ctxAfter);
     var rect = range.getBoundingClientRect();
-    showFloatBtn(rect, !!(thisOcc && thisOcc.marked));
+    showFloatBtn(rect, !!(hit && hit.marked));
   });
 
   // 点击空白处（非工具条、非选区）时隐藏
@@ -1044,7 +1083,7 @@ function computeOccurrenceIndex(previewPane, range, selectedText){
 
   window._getPendingHighlight = function(){
     lockClicking = false;
-    return {text: pendingText, occIndex: pendingOccIndex};
+    return {text: pendingText, ctxBefore: pendingCtx.ctxBefore, ctxAfter: pendingCtx.ctxAfter};
   };
   window._hideHighlightFloatBtn = function(){
     lockClicking = false;
@@ -1052,7 +1091,7 @@ function computeOccurrenceIndex(previewPane, range, selectedText){
   };
 })();
 
-// ── 将选中文字（精确到第N次出现）在源 Markdown 中包上对应颜色符号
+// ── 将选中文字（基于上下文精确定位）在源 Markdown 中包上对应颜色符号
 function applyHighlightFromSelection(color){
   var pending = window._getPendingHighlight();
   var text = pending.text;
@@ -1061,27 +1100,26 @@ function applyHighlightFromSelection(color){
   var ta = document.getElementById('noteContent');
   var content = ta.value;
 
-  var occs = findAllOccurrences(content, text);
-  var target = occs[pending.occIndex];
-  if(!target){
+  var hit = locateByContext(content, text, pending.ctxBefore, pending.ctxAfter);
+  if(!hit){
     toast('未在笔记原文中找到该文字，可能跨越了多个段落');
     window._hideHighlightFloatBtn();
     return;
   }
-  if(target.marked){
+  if(hit.marked){
     toast('这段文字已经被标记过了');
     window._hideHighlightFloatBtn();
     return;
   }
 
-  var idx = target.idx;
+  var idx = hit.idx;
   ta.value = content.slice(0, idx) + sym + text + sym + content.slice(idx + text.length);
   updatePreview();
   window._hideHighlightFloatBtn();
   toast('已标记，记得点击保存');
 }
 
-// ── 取消选中文字（精确到第N次出现）的高亮标记，去掉符号恢复普通文字
+// ── 取消选中文字（基于上下文精确定位）的高亮标记，去掉符号恢复普通文字
 function removeHighlightFromSelection(){
   var pending = window._getPendingHighlight();
   var text = pending.text;
@@ -1089,15 +1127,14 @@ function removeHighlightFromSelection(){
   var ta = document.getElementById('noteContent');
   var content = ta.value;
 
-  var occs = findAllOccurrences(content, text);
-  var target = occs[pending.occIndex];
-  if(!target || !target.marked){
+  var hit = locateByContext(content, text, pending.ctxBefore, pending.ctxAfter);
+  if(!hit || !hit.marked){
     toast('未找到该文字的标记，可能已被取消');
     window._hideHighlightFloatBtn();
     return;
   }
 
-  var idx = target.idx, sym = target.sym, symLen = sym.length;
+  var idx = hit.idx, sym = hit.sym, symLen = sym.length;
   // 去掉前后符号：[before][sym][text][sym][after] → [before][text][after]
   ta.value = content.slice(0, idx - symLen) + text + content.slice(idx + text.length + symLen);
   updatePreview();
