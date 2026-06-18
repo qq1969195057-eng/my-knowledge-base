@@ -104,6 +104,81 @@ select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;back
 .toast.show{opacity:1}
 .upload-progress{font-size:11px;color:#6366f1;padding:2px 6px}
 /* ── 新增：化学结构样式 ── */
+
+/* ══════════════════════════════════════════════════════════
+   新增：全屏模式（隐藏侧边栏+笔记列表，编辑区占满屏幕）
+   ══════════════════════════════════════════════════════════ */
+body.zen-mode .sidebar,
+body.zen-mode .note-list{display:none}
+
+/* ══════════════════════════════════════════════════════════
+   新增：深色模式（全局黑底白字）
+   ══════════════════════════════════════════════════════════ */
+body.dark-mode{background:#121212;color:#e8e8e8}
+body.dark-mode .sidebar{background:#1a1a1a;border-right-color:#2a2a2a}
+body.dark-mode .sidebar-top{border-bottom-color:#2a2a2a}
+body.dark-mode .app-title{color:#e8e8e8}
+body.dark-mode .search-box{background:#222;border-color:#333}
+body.dark-mode .search-box input{color:#e8e8e8}
+body.dark-mode .search-box input::placeholder{color:#666}
+body.dark-mode .section-label{color:#777}
+body.dark-mode .cat-item{color:#bbb}
+body.dark-mode .cat-item:hover{background:#222}
+body.dark-mode .cat-item.active{background:#2a2750;color:#a5b4fc}
+body.dark-mode .cat-count{background:#2a2a2a;color:#888}
+body.dark-mode .cat-item.active .cat-count{background:#3730a3;color:#c7d2fe}
+body.dark-mode .cat-delete-btn{color:#777}
+body.dark-mode .new-btn{background:#4f46e5;color:#fff}
+body.dark-mode .new-btn:hover{background:#6366f1}
+body.dark-mode .note-list{background:#161616;border-right-color:#2a2a2a}
+body.dark-mode .list-header{border-bottom-color:#2a2a2a;color:#bbb}
+body.dark-mode .note-item{border-bottom-color:#222}
+body.dark-mode .note-item:hover,body.dark-mode .note-item.active{background:#222040}
+body.dark-mode .note-title{color:#e8e8e8}
+body.dark-mode .note-preview{color:#888}
+body.dark-mode .tag{background:#312e6e;color:#c7d2fe}
+body.dark-mode .note-date{color:#666}
+body.dark-mode .editor{background:#121212}
+body.dark-mode .toolbar{border-bottom-color:#2a2a2a}
+body.dark-mode .tb-btn{border-color:#333;color:#bbb}
+body.dark-mode .tb-btn:hover{background:#222}
+body.dark-mode .tb-btn.active{background:#312e6e;border-color:#4f46e5;color:#c7d2fe}
+body.dark-mode select.tb-select{background:#1a1a1a;border-color:#333;color:#bbb}
+body.dark-mode .img-upload-btn{border-color:#333;color:#bbb}
+body.dark-mode .img-upload-btn:hover{background:#222}
+body.dark-mode .download-btn{border-color:#333;color:#bbb}
+body.dark-mode .download-btn:hover{background:#222;color:#a5b4fc}
+body.dark-mode .editor-title{color:#e8e8e8}
+body.dark-mode .editor-title::placeholder{color:#555}
+body.dark-mode .editor-tags{border-bottom-color:#222}
+body.dark-mode .etag{background:#312e6e;color:#c7d2fe}
+body.dark-mode .tag-input{color:#bbb}
+body.dark-mode .preview-pane{border-left-color:#222}
+body.dark-mode .edit-pane textarea{color:#e8e8e8}
+body.dark-mode .edit-pane textarea::placeholder{color:#555}
+body.dark-mode .math-block{background:#1a1a2e}
+body.dark-mode .preview-pane h1{color:#e8e8e8;border-bottom-color:#2a2a2a}
+body.dark-mode .preview-pane h2{color:#e8e8e8;border-bottom-color:#222}
+body.dark-mode .preview-pane h3{color:#ddd}
+body.dark-mode .preview-pane p{color:#ccc}
+body.dark-mode .preview-pane ul,body.dark-mode .preview-pane ol{color:#ccc}
+body.dark-mode .preview-pane blockquote{background:#1a1a2e;color:#aaa;border-left-color:#4f46e5}
+body.dark-mode .preview-pane code{background:#222;color:#ff79c6}
+body.dark-mode .preview-pane pre{background:#1a1a1a}
+body.dark-mode .preview-pane pre code{color:#e8e8e8}
+body.dark-mode .preview-pane strong{color:#fff}
+body.dark-mode .preview-pane em{color:#bbb}
+body.dark-mode .preview-pane hr{border-top-color:#2a2a2a}
+body.dark-mode .preview-pane th{background:#222040;border-color:#333;color:#e8e8e8}
+body.dark-mode .preview-pane td{border-color:#2a2a2a;color:#ccc}
+body.dark-mode .preview-pane tr:nth-child(even){background:#1a1a2e}
+body.dark-mode .editor-footer{border-top-color:#2a2a2a}
+body.dark-mode .word-count{color:#666}
+body.dark-mode .del-btn{border-color:#7f1d1d;color:#f87171}
+body.dark-mode .del-btn:hover{background:#2a1414}
+body.dark-mode .save-btn{background:#4f46e5}
+body.dark-mode .save-btn:hover{background:#6366f1}
+body.dark-mode .empty{color:#555}
 </style>
 </head>
 <body>
@@ -149,6 +224,8 @@ select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;back
         <button class="download-btn" onclick="downloadPDF()" title="下载为PDF">⬇ 下载PDF</button>
         <button class="tb-btn" id="previewBtn" onclick="togglePreview()">👁 预览</button>
         <button class="tb-btn" id="splitBtn" onclick="toggleSplit()">⬛ 分屏</button>
+        <button class="tb-btn" id="zenBtn" onclick="toggleZen()" title="全屏显示该笔记">⛶ 全屏</button>
+        <button class="tb-btn" id="darkBtn" onclick="toggleDark()" title="深色模式">🌙 深色</button>
         <select class="tb-select" id="catSelect">
           <option value="">选择分类</option>
           <option>有机化学</option>
@@ -742,6 +819,40 @@ function toggleSplit(){
     pb.style.display='none';
   }
 }
+
+// ── 新增：全屏显示笔记（隐藏侧边栏+笔记列表）
+function toggleZen(){
+  const btn = document.getElementById('zenBtn');
+  document.body.classList.toggle('zen-mode');
+  if(document.body.classList.contains('zen-mode')){
+    btn.classList.add('active'); btn.textContent='⛶ 退出全屏';
+  } else {
+    btn.classList.remove('active'); btn.textContent='⛶ 全屏';
+  }
+}
+
+// ── 新增：深色模式（全局黑底白字，记忆用户偏好）
+function toggleDark(){
+  const btn = document.getElementById('darkBtn');
+  document.body.classList.toggle('dark-mode');
+  const isDark = document.body.classList.contains('dark-mode');
+  if(isDark){
+    btn.classList.add('active'); btn.textContent='☀ 浅色';
+  } else {
+    btn.classList.remove('active'); btn.textContent='🌙 深色';
+  }
+  try{ localStorage.setItem('kb-dark-mode', isDark ? '1' : '0'); }catch(e){}
+}
+// 页面加载时恢复用户上次的深色模式偏好
+(function(){
+  try{
+    if(localStorage.getItem('kb-dark-mode') === '1'){
+      document.body.classList.add('dark-mode');
+      const btn = document.getElementById('darkBtn');
+      if(btn){ btn.classList.add('active'); btn.textContent='☀ 浅色'; }
+    }
+  }catch(e){}
+})();
 
 // ── 数据操作 ────────────────────────────────────────────
 async function fetchNotes(){
