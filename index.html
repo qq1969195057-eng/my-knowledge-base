@@ -707,13 +707,13 @@ function mdToHtml(md){
   });
 
   let quizBlocks = [];
-  md = md.replace(/^((?:[A-Z][.、]\s*.+\n){2,}正确答案[：:]\s*([A-Z])\s*$)/gm, function(match, block, answer) {
-    var optLines = block.trim().split('\n');
-    optLines.pop(); // 去掉"正确答案：X"那一行
+  md = md.replace(/^((?:[A-Z][.、]\s*.+\n){2,}\n?(?:正确答案|答案)[：:]\s*([A-Z])\s*$)/gm, function(match, block, answer) {
+    var optLines = block.trim().split('\n').filter(function(l){ return l.trim() !== ''; });
+    optLines.pop(); // 去掉"(正确)答案：X"那一行
     var opts = optLines.map(function(line){
       var m = line.match(/^([A-Z])[.、]\s*(.+)$/);
-      return {letter: m[1], text: m[2]};
-    });
+      return m ? {letter: m[1], text: m[2]} : null;
+    }).filter(Boolean);
     var qid = 'quiz' + quizBlocks.length;
     var html = '<div class="quiz-block" data-answer="' + answer + '">';
     opts.forEach(function(o){
