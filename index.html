@@ -925,6 +925,7 @@ function checkQuizAnswer(el){
 // ══════════════════════════════════════════════════════════
 (function(){
   var pendingText = ''; // 当前选中的纯文本，等待用户点击标红按钮时使用
+  var lockClicking = false; // 按钮点击期间锁定，防止中途被其他事件清空
   var previewPane = document.getElementById('previewPane');
   var floatBtn = document.getElementById('hlFloatBtn');
 
@@ -934,16 +935,16 @@ function checkQuizAnswer(el){
     floatBtn.classList.add('show');
   }
   function hideFloatBtn(){
+    if(lockClicking) return; // 正在处理按钮点击时，不允许被其他事件打断清空
     floatBtn.classList.remove('show');
     pendingText = '';
   }
 
   document.addEventListener('mouseup', function(e){
-    // 点的是按钮本身，不处理（避免按钮刚点完又被这段逻辑立刻隐藏）
-    if(e.target === floatBtn) return;
+    // 点的是按钮本身（含按钮内的任意子节点/文字），不在这里处理选区逻辑
+    if(floatBtn.contains(e.target)) return;
     var sel = window.getSelection();
     var text = sel ? sel.toString() : '';
-    // 必须选区落在预览区内，且不是空白/超长选择
     if(!text || !text.trim() || text.length > 200 || sel.rangeCount === 0){
       hideFloatBtn();
       return;
@@ -961,12 +962,21 @@ function checkQuizAnswer(el){
 
   // 点击空白处（非按钮、非选区）时隐藏按钮
   document.addEventListener('mousedown', function(e){
-    if(e.target === floatBtn) return;
+    if(floatBtn.contains(e.target)) return; // 点击按钮内任意部分都不触发隐藏
     if(!previewPane.contains(e.target)) hideFloatBtn();
   });
 
-  window._getPendingHighlightText = function(){ return pendingText; };
-  window._hideHighlightFloatBtn = hideFloatBtn;
+  // 按钮按下的瞬间立即锁定当前 pendingText，防止后续 mouseup/mousedown 把它清空
+  floatBtn.addEventListener('mousedown', function(){ lockClicking = true; });
+
+  window._getPendingHighlightText = function(){
+    lockClicking = false;
+    return pendingText;
+  };
+  window._hideHighlightFloatBtn = function(){
+    lockClicking = false;
+    hideFloatBtn();
+  };
 })();
 
 // ── 将选中文字在源 Markdown 中包上 ==高亮== 标记
