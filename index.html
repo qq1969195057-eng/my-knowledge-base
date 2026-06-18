@@ -83,10 +83,22 @@ select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;back
 .preview-pane pre code{background:none;padding:0;color:#1a1a1a}
 .preview-pane img{max-width:100%;border-radius:8px;margin:8px 0;box-shadow:0 2px 8px rgba(0,0,0,0.1);display:block}
 .preview-pane strong{font-weight:600;color:#1a1a1a}
-.hl-mark{background:transparent;color:#dc2626;font-weight:600;padding:0}
-.hl-float-btn{position:fixed;display:none;z-index:200;padding:6px 12px;border:none;border-radius:8px;background:#1a1a1a;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;box-shadow:0 4px 12px rgba(0,0,0,0.25);white-space:nowrap}
-.hl-float-btn:hover{background:#dc2626}
-.hl-float-btn.show{display:block}
+.hl-mark{background:none!important;font-weight:600;padding:0;border-radius:2px}
+.hl-mark.hl-red{color:#dc2626}
+.hl-mark.hl-orange{color:#ea580c}
+.hl-mark.hl-blue{color:#2563eb}
+.hl-mark.hl-green{color:#16a34a}
+.hl-float-bar{position:fixed;display:none;z-index:200;padding:6px 8px;border-radius:10px;background:#1a1a1a;box-shadow:0 4px 12px rgba(0,0,0,0.25);white-space:nowrap;gap:8px;align-items:center}
+.hl-float-bar.show{display:flex}
+.hl-color-btn{width:20px;height:20px;border-radius:50%;border:2px solid rgba(255,255,255,0.5);cursor:pointer;padding:0;transition:transform 0.1s}
+.hl-color-btn:hover{transform:scale(1.2);border-color:#fff}
+.hl-dot-red{background:#dc2626}
+.hl-dot-orange{background:#ea580c}
+.hl-dot-blue{background:#2563eb}
+.hl-dot-green{background:#16a34a}
+.hl-remove-btn{display:none;width:22px;height:22px;border-radius:50%;border:none;background:#444;color:#fff;font-size:13px;line-height:1;cursor:pointer;padding:0;margin-left:2px;transition:background 0.1s}
+.hl-remove-btn:hover{background:#dc2626}
+.hl-remove-btn.show-remove{display:inline-block}
 .preview-pane em{font-style:italic;color:#555}
 .preview-pane hr{border:none;border-top:1px solid #e8e8e4;margin:16px 0}
 .preview-pane table{width:100%;border-collapse:collapse;margin:10px 0;font-size:17px}
@@ -181,7 +193,10 @@ body.dark-mode .preview-pane code{background:#222;color:#ff79c6}
 body.dark-mode .preview-pane pre{background:#1a1a1a}
 body.dark-mode .preview-pane pre code{color:#e8e8e8}
 body.dark-mode .preview-pane strong{color:#fff}
-body.dark-mode .hl-mark{color:#f87171}
+body.dark-mode .hl-mark.hl-red{color:#f87171}
+body.dark-mode .hl-mark.hl-orange{color:#fb923c}
+body.dark-mode .hl-mark.hl-blue{color:#60a5fa}
+body.dark-mode .hl-mark.hl-green{color:#4ade80}
 body.dark-mode .preview-pane em{color:#bbb}
 body.dark-mode .preview-pane hr{border-top-color:#2a2a2a}
 body.dark-mode .preview-pane th{background:#222040;border-color:#333;color:#e8e8e8}
@@ -266,7 +281,13 @@ body.dark-mode .empty{color:#555}
           <textarea id="noteContent" placeholder="开始记录你的想法...\n\n支持 Markdown 格式：\n## 标题\n**粗体** *斜体*\n- 列表项\n> 引用\n\n图片：点击工具栏「🖼 图片」上传"></textarea>
         </div>
         <div class="preview-pane" id="previewPane"></div>
-        <button id="hlFloatBtn" class="hl-float-btn" onclick="applyHighlightFromSelection()">🔴 标红</button>
+        <div id="hlFloatBtn" class="hl-float-bar">
+          <button class="hl-color-btn hl-dot-red" onclick="applyHighlightFromSelection('red')" title="标红"></button>
+          <button class="hl-color-btn hl-dot-orange" onclick="applyHighlightFromSelection('orange')" title="标橙"></button>
+          <button class="hl-color-btn hl-dot-blue" onclick="applyHighlightFromSelection('blue')" title="标蓝"></button>
+          <button class="hl-color-btn hl-dot-green" onclick="applyHighlightFromSelection('green')" title="标绿"></button>
+          <button id="hlRemoveBtn" class="hl-remove-btn" onclick="removeHighlightFromSelection()" title="取消标记">⊘</button>
+        </div>
       </div>
       <div class="editor-footer">
         <span class="word-count" id="wordCount">0 字</span>
@@ -783,7 +804,10 @@ function mdToHtml(md){
   }
 
   h = out.join('\n');
-  h = h.replace(/==(.+?)==/g, '<mark class="hl-mark">$1</mark>');
+  h = h.replace(/==(.+?)==/g, '<mark class="hl-mark hl-red">$1</mark>');
+  h = h.replace(/\^\^(.+?)\^\^/g, '<mark class="hl-mark hl-orange">$1</mark>');
+  h = h.replace(/~~(.+?)~~/g, '<mark class="hl-mark hl-blue">$1</mark>');
+  h = h.replace(/\+\+(.+?)\+\+/g, '<mark class="hl-mark hl-green">$1</mark>');
   h = h.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
   h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   h = h.replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');
@@ -921,18 +945,51 @@ function checkQuizAnswer(el){
 }
 
 // ══════════════════════════════════════════════════════════
-// 新增：预览模式下选中文字 → 弹出"标红"按钮 → 写回==高亮==语法
+// 新增：预览模式下选中文字 → 弹出颜色选择工具条 → 写回对应符号高亮
 // ══════════════════════════════════════════════════════════
+var HL_SYMBOLS = {red:'==', orange:'^^', blue:'~~', green:'++'};
+var HL_SYM_LIST = ['==','^^','~~','++'];
+
+// 在content中查找text的第一个"未被标记"出现位置；返回{idx} 或 null
+function findUnmarkedOccurrence(content, text){
+  var searchFrom = 0;
+  while(true){
+    var found = content.indexOf(text, searchFrom);
+    if(found === -1) return null;
+    var before2 = content.slice(Math.max(0,found-2), found);
+    var after2 = content.slice(found+text.length, found+text.length+2);
+    var alreadyMarked = HL_SYM_LIST.indexOf(before2) !== -1 && before2 === after2;
+    if(alreadyMarked){ searchFrom = found + text.length; continue; }
+    return {idx: found};
+  }
+}
+// 在content中查找text的第一个"已被标记"出现位置；返回{idx, sym} 或 null
+function findMarkedOccurrence(content, text){
+  var searchFrom = 0;
+  while(true){
+    var found = content.indexOf(text, searchFrom);
+    if(found === -1) return null;
+    var before2 = content.slice(Math.max(0,found-2), found);
+    var after2 = content.slice(found+text.length, found+text.length+2);
+    if(HL_SYM_LIST.indexOf(before2) !== -1 && before2 === after2){
+      return {idx: found, sym: before2};
+    }
+    searchFrom = found + text.length;
+  }
+}
+
 (function(){
-  var pendingText = ''; // 当前选中的纯文本，等待用户点击标红按钮时使用
+  var pendingText = ''; // 当前选中的纯文本，等待用户点击颜色按钮时使用
   var lockClicking = false; // 按钮点击期间锁定，防止中途被其他事件清空
   var previewPane = document.getElementById('previewPane');
   var floatBtn = document.getElementById('hlFloatBtn');
+  var removeBtn = document.getElementById('hlRemoveBtn');
 
-  function showFloatBtn(rect){
-    floatBtn.style.left = Math.max(8, rect.left + rect.width/2 - 40) + 'px';
-    floatBtn.style.top = Math.max(8, rect.top - 38) + 'px';
+  function showFloatBtn(rect, hasMarked){
+    floatBtn.style.left = Math.max(8, rect.left + rect.width/2 - 56) + 'px';
+    floatBtn.style.top = Math.max(8, rect.top - 42) + 'px';
     floatBtn.classList.add('show');
+    removeBtn.classList.toggle('show-remove', !!hasMarked);
   }
   function hideFloatBtn(){
     if(lockClicking) return; // 正在处理按钮点击时，不允许被其他事件打断清空
@@ -941,7 +998,7 @@ function checkQuizAnswer(el){
   }
 
   document.addEventListener('mouseup', function(e){
-    // 点的是按钮本身（含按钮内的任意子节点/文字），不在这里处理选区逻辑
+    // 点的是工具条本身（含内部任意子节点），不在这里处理选区逻辑
     if(floatBtn.contains(e.target)) return;
     var sel = window.getSelection();
     var text = sel ? sel.toString() : '';
@@ -956,17 +1013,20 @@ function checkQuizAnswer(el){
       return;
     }
     pendingText = text;
+    // 检测这段文字当前是否已经被标记过（用于决定是否显示"取消标记"按钮）
+    var content = document.getElementById('noteContent').value;
+    var markedHit = findMarkedOccurrence(content, text);
     var rect = range.getBoundingClientRect();
-    showFloatBtn(rect);
+    showFloatBtn(rect, !!markedHit);
   });
 
-  // 点击空白处（非按钮、非选区）时隐藏按钮
+  // 点击空白处（非工具条、非选区）时隐藏
   document.addEventListener('mousedown', function(e){
-    if(floatBtn.contains(e.target)) return; // 点击按钮内任意部分都不触发隐藏
+    if(floatBtn.contains(e.target)) return;
     if(!previewPane.contains(e.target)) hideFloatBtn();
   });
 
-  // 按钮按下的瞬间立即锁定当前 pendingText，防止后续 mouseup/mousedown 把它清空
+  // 工具条按下的瞬间立即锁定当前 pendingText，防止后续 mouseup/mousedown 把它清空
   floatBtn.addEventListener('mousedown', function(){ lockClicking = true; });
 
   window._getPendingHighlightText = function(){
@@ -979,41 +1039,49 @@ function checkQuizAnswer(el){
   };
 })();
 
-// ── 将选中文字在源 Markdown 中包上 ==高亮== 标记
-function applyHighlightFromSelection(){
+// ── 将选中文字在源 Markdown 中包上对应颜色符号
+function applyHighlightFromSelection(color){
+  var text = window._getPendingHighlightText();
+  if(!text) return;
+  var sym = HL_SYMBOLS[color] || '==';
+  var ta = document.getElementById('noteContent');
+  var content = ta.value;
+
+  var hit = findUnmarkedOccurrence(content, text);
+  if(!hit){
+    toast('未在笔记原文中找到该文字，可能跨越了多个段落，或已全部标记过');
+    window._hideHighlightFloatBtn();
+    return;
+  }
+
+  var idx = hit.idx;
+  ta.value = content.slice(0, idx) + sym + text + sym + content.slice(idx + text.length);
+  updatePreview();
+  window._hideHighlightFloatBtn();
+  toast('已标记，记得点击保存');
+}
+
+// ── 取消选中文字的高亮标记（去掉符号，恢复普通文字）
+function removeHighlightFromSelection(){
   var text = window._getPendingHighlightText();
   if(!text) return;
   var ta = document.getElementById('noteContent');
   var content = ta.value;
 
-  // 在原始文本中查找第一个"尚未被==包裹"的匹配位置
-  var idx = -1, searchFrom = 0;
-  while(true){
-    var found = content.indexOf(text, searchFrom);
-    if(found === -1) break;
-    var before2 = content.slice(Math.max(0,found-2), found);
-    var after2 = content.slice(found+text.length, found+text.length+2);
-    if(before2 === '==' && after2 === '=='){
-      // 已经被标记过，跳过，继续找下一个
-      searchFrom = found + text.length;
-      continue;
-    }
-    idx = found;
-    break;
-  }
-
-  if(idx === -1){
-    toast('未在笔记原文中找到该文字，可能跨越了多个段落');
+  var hit = findMarkedOccurrence(content, text);
+  if(!hit){
+    toast('未找到该文字的标记，可能已被取消');
     window._hideHighlightFloatBtn();
     return;
   }
 
-  ta.value = content.slice(0, idx) + '==' + text + '==' + content.slice(idx + text.length);
+  var idx = hit.idx, sym = hit.sym, symLen = sym.length;
+  // 去掉前后符号：[before][sym][text][sym][after] → [before][text][after]
+  ta.value = content.slice(0, idx - symLen) + text + content.slice(idx + text.length + symLen);
   updatePreview();
   window._hideHighlightFloatBtn();
-  toast('已标红，记得点击保存');
+  toast('已取消标记，记得点击保存');
 }
-
 
 async function fetchNotes(){
   document.getElementById('noteItems').innerHTML='<div class="loading">加载中...</div>';
