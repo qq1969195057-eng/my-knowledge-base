@@ -84,6 +84,9 @@ select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;back
 .preview-pane img{max-width:100%;border-radius:8px;margin:8px 0;box-shadow:0 2px 8px rgba(0,0,0,0.1);display:block}
 .preview-pane strong{font-weight:600;color:#1a1a1a}
 .hl-mark{background:transparent;color:#dc2626;font-weight:600;padding:0}
+.hl-float-btn{position:fixed;display:none;z-index:200;padding:6px 12px;border:none;border-radius:8px;background:#1a1a1a;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;box-shadow:0 4px 12px rgba(0,0,0,0.25);white-space:nowrap}
+.hl-float-btn:hover{background:#dc2626}
+.hl-float-btn.show{display:block}
 .preview-pane em{font-style:italic;color:#555}
 .preview-pane hr{border:none;border-top:1px solid #e8e8e4;margin:16px 0}
 .preview-pane table{width:100%;border-collapse:collapse;margin:10px 0;font-size:17px}
@@ -263,6 +266,7 @@ body.dark-mode .empty{color:#555}
           <textarea id="noteContent" placeholder="开始记录你的想法...\n\n支持 Markdown 格式：\n## 标题\n**粗体** *斜体*\n- 列表项\n> 引用\n\n图片：点击工具栏「🖼 图片」上传"></textarea>
         </div>
         <div class="preview-pane" id="previewPane"></div>
+        <button id="hlFloatBtn" class="hl-float-btn" onclick="applyHighlightFromSelection()">🔴 标红</button>
       </div>
       <div class="editor-footer">
         <span class="word-count" id="wordCount">0 字</span>
@@ -916,7 +920,91 @@ function checkQuizAnswer(el){
   });
 }
 
-// ── 数据操作 ────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
+// 新增：预览模式下选中文字 → 弹出"标红"按钮 → 写回==高亮==语法
+// ══════════════════════════════════════════════════════════
+(function(){
+  var pendingText = ''; // 当前选中的纯文本，等待用户点击标红按钮时使用
+  var previewPane = document.getElementById('previewPane');
+  var floatBtn = document.getElementById('hlFloatBtn');
+
+  function showFloatBtn(rect){
+    floatBtn.style.left = Math.max(8, rect.left + rect.width/2 - 40) + 'px';
+    floatBtn.style.top = Math.max(8, rect.top - 38) + 'px';
+    floatBtn.classList.add('show');
+  }
+  function hideFloatBtn(){
+    floatBtn.classList.remove('show');
+    pendingText = '';
+  }
+
+  document.addEventListener('mouseup', function(e){
+    // 点的是按钮本身，不处理（避免按钮刚点完又被这段逻辑立刻隐藏）
+    if(e.target === floatBtn) return;
+    var sel = window.getSelection();
+    var text = sel ? sel.toString() : '';
+    // 必须选区落在预览区内，且不是空白/超长选择
+    if(!text || !text.trim() || text.length > 200 || sel.rangeCount === 0){
+      hideFloatBtn();
+      return;
+    }
+    var range = sel.getRangeAt(0);
+    var anchorNode = sel.anchorNode;
+    if(!previewPane.contains(anchorNode)){
+      hideFloatBtn();
+      return;
+    }
+    pendingText = text;
+    var rect = range.getBoundingClientRect();
+    showFloatBtn(rect);
+  });
+
+  // 点击空白处（非按钮、非选区）时隐藏按钮
+  document.addEventListener('mousedown', function(e){
+    if(e.target === floatBtn) return;
+    if(!previewPane.contains(e.target)) hideFloatBtn();
+  });
+
+  window._getPendingHighlightText = function(){ return pendingText; };
+  window._hideHighlightFloatBtn = hideFloatBtn;
+})();
+
+// ── 将选中文字在源 Markdown 中包上 ==高亮== 标记
+function applyHighlightFromSelection(){
+  var text = window._getPendingHighlightText();
+  if(!text) return;
+  var ta = document.getElementById('noteContent');
+  var content = ta.value;
+
+  // 在原始文本中查找第一个"尚未被==包裹"的匹配位置
+  var idx = -1, searchFrom = 0;
+  while(true){
+    var found = content.indexOf(text, searchFrom);
+    if(found === -1) break;
+    var before2 = content.slice(Math.max(0,found-2), found);
+    var after2 = content.slice(found+text.length, found+text.length+2);
+    if(before2 === '==' && after2 === '=='){
+      // 已经被标记过，跳过，继续找下一个
+      searchFrom = found + text.length;
+      continue;
+    }
+    idx = found;
+    break;
+  }
+
+  if(idx === -1){
+    toast('未在笔记原文中找到该文字，可能跨越了多个段落');
+    window._hideHighlightFloatBtn();
+    return;
+  }
+
+  ta.value = content.slice(0, idx) + '==' + text + '==' + content.slice(idx + text.length);
+  updatePreview();
+  window._hideHighlightFloatBtn();
+  toast('已标红，记得点击保存');
+}
+
+
 async function fetchNotes(){
   document.getElementById('noteItems').innerHTML='<div class="loading">加载中...</div>';
   const r=await fetch(API+'?order=updated_at.desc',{headers:{...HEADERS,'Prefer':'return=representation'}});
