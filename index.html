@@ -1010,6 +1010,9 @@ async function fetchNotes(){
   const r=await fetch(API+'?order=updated_at.desc',{headers:{...HEADERS,'Prefer':'return=representation'}});
   notes=await r.json();
   if(!Array.isArray(notes)) notes=[];
+  // 修复：从数据库拉取的笔记本身就已经存在，必须标记_saved=true，
+  // 否则编辑旧笔记后点保存会被误判为"新建"，导致多出一篇重复笔记
+  notes.forEach(function(n){ n._saved = true; });
   renderAll();
 }
 
