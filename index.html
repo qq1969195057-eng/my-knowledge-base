@@ -63,32 +63,42 @@ select.tb-select{padding:4px 8px;border:1px solid #e8e8e4;border-radius:6px;back
 .editor-area{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
 #editorContent{min-height:0;overflow:hidden}
 .edit-pane{flex:1;padding:12px 20px;overflow-y:auto;min-height:0}
-.edit-pane textarea{width:100%;height:100%;min-height:300px;border:none;outline:none;resize:none;font-size:14px;line-height:1.9;color:#1a1a1a;background:transparent;font-family:'Menlo','Monaco','Courier New',monospace}
-.preview-pane{flex:1;padding:16px 24px;overflow-y:auto;display:none;border-left:1px solid #f0f0ec;min-height:0;height:100%}
+.edit-pane textarea{width:100%;height:100%;min-height:300px;border:none;outline:none;resize:none;font-size:18px;line-height:1.9;color:#1a1a1a;background:transparent;font-family:'Menlo','Monaco','Courier New',monospace}
+.preview-pane{flex:1;padding:16px 24px;overflow-y:auto;display:none;border-left:1px solid #f0f0ec;min-height:0;height:100%;font-size:18px}
 .preview-pane.show{display:block}
 .math-block{overflow-x:auto;margin:12px 0;padding:8px;background:#f9f9ff;border-radius:6px;text-align:center}
 .katex-display{margin:0}
 .split-view .edit-pane{flex:1}
 .split-view .preview-pane{display:block;flex:1}
 /* Markdown preview styles */
-.preview-pane h1{font-size:22px;font-weight:700;margin:0 0 12px;color:#1a1a1a;border-bottom:2px solid #e8e8e4;padding-bottom:8px}
-.preview-pane h2{font-size:18px;font-weight:600;margin:20px 0 8px;color:#1a1a1a;border-bottom:1px solid #f0f0ec;padding-bottom:4px}
-.preview-pane h3{font-size:15px;font-weight:600;margin:16px 0 6px;color:#333}
+.preview-pane h1{font-size:26px;font-weight:700;margin:0 0 12px;color:#1a1a1a;border-bottom:2px solid #e8e8e4;padding-bottom:8px}
+.preview-pane h2{font-size:22px;font-weight:600;margin:20px 0 8px;color:#1a1a1a;border-bottom:1px solid #f0f0ec;padding-bottom:4px}
+.preview-pane h3{font-size:19px;font-weight:600;margin:16px 0 6px;color:#333}
 .preview-pane p{margin:0 0 10px;line-height:1.8;color:#333}
 .preview-pane ul,.preview-pane ol{margin:0 0 10px 20px;line-height:1.8;color:#333}
 .preview-pane li{margin-bottom:3px}
 .preview-pane blockquote{border-left:3px solid #a5b4fc;padding:6px 12px;margin:10px 0;background:#f9f9ff;color:#555;border-radius:0 6px 6px 0}
-.preview-pane code{background:#f0f0ec;padding:1px 5px;border-radius:4px;font-family:monospace;font-size:13px;color:#d63384}
+.preview-pane code{background:#f0f0ec;padding:1px 5px;border-radius:4px;font-family:monospace;font-size:17px;color:#d63384}
 .preview-pane pre{background:#f5f5f0;padding:12px;border-radius:8px;overflow-x:auto;margin:10px 0}
 .preview-pane pre code{background:none;padding:0;color:#1a1a1a}
 .preview-pane img{max-width:100%;border-radius:8px;margin:8px 0;box-shadow:0 2px 8px rgba(0,0,0,0.1);display:block}
 .preview-pane strong{font-weight:600;color:#1a1a1a}
 .preview-pane em{font-style:italic;color:#555}
 .preview-pane hr{border:none;border-top:1px solid #e8e8e4;margin:16px 0}
-.preview-pane table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
+.preview-pane table{width:100%;border-collapse:collapse;margin:10px 0;font-size:17px}
 .preview-pane th{background:#f0eefc;padding:7px 10px;text-align:left;font-weight:600;border:1px solid #e0defa}
 .preview-pane td{padding:6px 10px;border:1px solid #e8e8e4}
 .preview-pane tr:nth-child(even){background:#f9f9ff}
+/* ── 新增：可点击选择题样式 ── */
+.quiz-block{margin:14px 0;border:1px solid #e8e8e4;border-radius:10px;padding:12px 14px;background:#fafaf9}
+.quiz-option{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;margin:6px 0;border-radius:8px;border:1px solid #e0e0db;cursor:pointer;background:#fff;font-size:18px;line-height:1.6;transition:background 0.15s,border-color 0.15s}
+.quiz-option:hover{background:#f5f5f0}
+.quiz-option-label{font-weight:600;flex-shrink:0}
+.quiz-option.correct{background:#ecfdf5;border-color:#34d399;color:#065f46}
+.quiz-option.wrong{background:#fef2f2;border-color:#f87171;color:#991b1b}
+.quiz-option.disabled{cursor:default}
+.quiz-option.disabled:hover{background:inherit}
+.quiz-result-icon{margin-left:auto;flex-shrink:0;font-weight:700}
 .editor-footer{padding:8px 20px;border-top:1px solid #e8e8e4;display:flex;align-items:center;justify-content:space-between}
 .word-count{font-size:12px;color:#bbb}
 .footer-btns{display:flex;gap:8px}
@@ -172,6 +182,11 @@ body.dark-mode .preview-pane hr{border-top-color:#2a2a2a}
 body.dark-mode .preview-pane th{background:#222040;border-color:#333;color:#e8e8e8}
 body.dark-mode .preview-pane td{border-color:#2a2a2a;color:#ccc}
 body.dark-mode .preview-pane tr:nth-child(even){background:#1a1a2e}
+body.dark-mode .quiz-block{background:#161616;border-color:#2a2a2a}
+body.dark-mode .quiz-option{background:#1a1a1a;border-color:#333;color:#ccc}
+body.dark-mode .quiz-option:hover{background:#222}
+body.dark-mode .quiz-option.correct{background:#0d2b1f;border-color:#34d399;color:#6ee7b7}
+body.dark-mode .quiz-option.wrong{background:#2a1414;border-color:#f87171;color:#fca5a5}
 body.dark-mode .editor-footer{border-top-color:#2a2a2a}
 body.dark-mode .word-count{color:#666}
 body.dark-mode .del-btn{border-color:#7f1d1d;color:#f87171}
@@ -691,6 +706,27 @@ function mdToHtml(md){
     return 'MATHINLINE' + (mathInlines.length-1) + 'END';
   });
 
+  let quizBlocks = [];
+  md = md.replace(/^((?:[A-Z][.、]\s*.+\n){2,}正确答案[：:]\s*([A-Z])\s*$)/gm, function(match, block, answer) {
+    var optLines = block.trim().split('\n');
+    optLines.pop(); // 去掉"正确答案：X"那一行
+    var opts = optLines.map(function(line){
+      var m = line.match(/^([A-Z])[.、]\s*(.+)$/);
+      return {letter: m[1], text: m[2]};
+    });
+    var qid = 'quiz' + quizBlocks.length;
+    var html = '<div class="quiz-block" data-answer="' + answer + '">';
+    opts.forEach(function(o){
+      html += '<div class="quiz-option" data-letter="' + o.letter + '" onclick="checkQuizAnswer(this)">'
+            + '<span class="quiz-option-label">' + o.letter + '.</span>'
+            + '<span>' + o.text + '</span>'
+            + '</div>';
+    });
+    html += '</div>';
+    quizBlocks.push(html);
+    return 'QUIZBLOCK' + (quizBlocks.length-1) + 'END\n';
+  });
+
   let tableBlocks = [];
   md = md.replace(/((?:^\|.+\|\s*\n)+)/gm, function(match) {
     var lines = match.trim().split('\n').filter(l => l.trim());
@@ -754,6 +790,9 @@ function mdToHtml(md){
   });
   h = h.replace(/TABLEBLOCK(\d+)END/g, function(m, i) {
     return tableBlocks[i];
+  });
+  h = h.replace(/QUIZBLOCK(\d+)END/g, function(m, i) {
+    return quizBlocks[i];
   });
   h = h.replace(/MATHBLOCK(\d+)END/g, function(m, i) {
     try { return '<div class="math-block">' + katex.renderToString(mathBlocks[i], {displayMode:true, throwOnError:false}) + '</div>'; }
@@ -853,6 +892,26 @@ function toggleDark(){
     }
   }catch(e){}
 })();
+
+// ── 新增：选择题点击判断
+function checkQuizAnswer(el){
+  const block = el.closest('.quiz-block');
+  if(block.classList.contains('answered')) return; // 已作答，不可重复点击
+  block.classList.add('answered');
+  const answer = block.getAttribute('data-answer');
+  const options = block.querySelectorAll('.quiz-option');
+  options.forEach(function(opt){
+    opt.classList.add('disabled');
+    const letter = opt.getAttribute('data-letter');
+    if(letter === answer){
+      opt.classList.add('correct');
+      opt.insertAdjacentHTML('beforeend', '<span class="quiz-result-icon">✓</span>');
+    } else if(opt === el){
+      opt.classList.add('wrong');
+      opt.insertAdjacentHTML('beforeend', '<span class="quiz-result-icon">✗</span>');
+    }
+  });
+}
 
 // ── 数据操作 ────────────────────────────────────────────
 async function fetchNotes(){
