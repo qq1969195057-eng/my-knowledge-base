@@ -954,36 +954,42 @@ function checkQuizAnswer(el){
 var HL_SYMBOLS = {red:'==', orange:'^^', blue:'~~', green:'++'};
 var HL_SYM_LIST = ['==','^^','~~','++'];
 
-// 在content中查找text的第一个"未被标记"出现位置；返回{idx} 或 null
-function findUnmarkedOccurrence(content, text){
+// 计算 text 在 content 中所有出现位置（不论是否已标记），返回 [{idx, marked, sym}, ...]
+function findAllOccurrences(content, text){
+  var results = [];
   var searchFrom = 0;
   while(true){
     var found = content.indexOf(text, searchFrom);
-    if(found === -1) return null;
+    if(found === -1) break;
     var before2 = content.slice(Math.max(0,found-2), found);
     var after2 = content.slice(found+text.length, found+text.length+2);
-    var alreadyMarked = HL_SYM_LIST.indexOf(before2) !== -1 && before2 === after2;
-    if(alreadyMarked){ searchFrom = found + text.length; continue; }
-    return {idx: found};
-  }
-}
-// 在content中查找text的第一个"已被标记"出现位置；返回{idx, sym} 或 null
-function findMarkedOccurrence(content, text){
-  var searchFrom = 0;
-  while(true){
-    var found = content.indexOf(text, searchFrom);
-    if(found === -1) return null;
-    var before2 = content.slice(Math.max(0,found-2), found);
-    var after2 = content.slice(found+text.length, found+text.length+2);
-    if(HL_SYM_LIST.indexOf(before2) !== -1 && before2 === after2){
-      return {idx: found, sym: before2};
-    }
+    var marked = HL_SYM_LIST.indexOf(before2) !== -1 && before2 === after2;
+    results.push({idx: found, marked: marked, sym: marked ? before2 : null});
     searchFrom = found + text.length;
   }
+  return results;
+}
+
+// 计算"selectedText"在previewPane的可见文本中，选区之前已经出现了几次同样的文字（0-based序号）
+function computeOccurrenceIndex(previewPane, range, selectedText){
+  if(!selectedText) return 0;
+  var preRange = document.createRange();
+  preRange.selectNodeContents(previewPane);
+  preRange.setEnd(range.startContainer, range.startOffset);
+  var textBefore = preRange.toString();
+  var count = 0, searchFrom = 0;
+  while(true){
+    var found = textBefore.indexOf(selectedText, searchFrom);
+    if(found === -1) break;
+    count++;
+    searchFrom = found + selectedText.length;
+  }
+  return count; // 0-based：选区前出现了count次，所以选区本身是第count次（0-indexed）
 }
 
 (function(){
-  var pendingText = ''; // 当前选中的纯文本，等待用户点击颜色按钮时使用
+  var pendingText = ''; // 当前选中的纯文本
+  var pendingOccIndex = 0; // 该文字在预览区中的第几次出现（0-based）
   var lockClicking = false; // 按钮点击期间锁定，防止中途被其他事件清空
   var previewPane = document.getElementById('previewPane');
   var floatBtn = document.getElementById('hlFloatBtn');
@@ -1017,11 +1023,14 @@ function findMarkedOccurrence(content, text){
       return;
     }
     pendingText = text;
-    // 检测这段文字当前是否已经被标记过（用于决定是否显示"取消标记"按钮）
+    // 计算这是预览区里第几次出现这段文字（用于精确定位，避免重复文字定位错误）
+    pendingOccIndex = computeOccurrenceIndex(previewPane, range, text);
+    // 检测这一次具体出现是否已经被标记过（用于决定是否显示"取消标记"按钮）
     var content = document.getElementById('noteContent').value;
-    var markedHit = findMarkedOccurrence(content, text);
+    var occs = findAllOccurrences(content, text);
+    var thisOcc = occs[pendingOccIndex];
     var rect = range.getBoundingClientRect();
-    showFloatBtn(rect, !!markedHit);
+    showFloatBtn(rect, !!(thisOcc && thisOcc.marked));
   });
 
   // 点击空白处（非工具条、非选区）时隐藏
@@ -1033,9 +1042,9 @@ function findMarkedOccurrence(content, text){
   // 工具条按下的瞬间立即锁定当前 pendingText，防止后续 mouseup/mousedown 把它清空
   floatBtn.addEventListener('mousedown', function(){ lockClicking = true; });
 
-  window._getPendingHighlightText = function(){
+  window._getPendingHighlight = function(){
     lockClicking = false;
-    return pendingText;
+    return {text: pendingText, occIndex: pendingOccIndex};
   };
   window._hideHighlightFloatBtn = function(){
     lockClicking = false;
@@ -1043,43 +1052,52 @@ function findMarkedOccurrence(content, text){
   };
 })();
 
-// ── 将选中文字在源 Markdown 中包上对应颜色符号
+// ── 将选中文字（精确到第N次出现）在源 Markdown 中包上对应颜色符号
 function applyHighlightFromSelection(color){
-  var text = window._getPendingHighlightText();
+  var pending = window._getPendingHighlight();
+  var text = pending.text;
   if(!text) return;
   var sym = HL_SYMBOLS[color] || '==';
   var ta = document.getElementById('noteContent');
   var content = ta.value;
 
-  var hit = findUnmarkedOccurrence(content, text);
-  if(!hit){
-    toast('未在笔记原文中找到该文字，可能跨越了多个段落，或已全部标记过');
+  var occs = findAllOccurrences(content, text);
+  var target = occs[pending.occIndex];
+  if(!target){
+    toast('未在笔记原文中找到该文字，可能跨越了多个段落');
+    window._hideHighlightFloatBtn();
+    return;
+  }
+  if(target.marked){
+    toast('这段文字已经被标记过了');
     window._hideHighlightFloatBtn();
     return;
   }
 
-  var idx = hit.idx;
+  var idx = target.idx;
   ta.value = content.slice(0, idx) + sym + text + sym + content.slice(idx + text.length);
   updatePreview();
   window._hideHighlightFloatBtn();
   toast('已标记，记得点击保存');
 }
 
-// ── 取消选中文字的高亮标记（去掉符号，恢复普通文字）
+// ── 取消选中文字（精确到第N次出现）的高亮标记，去掉符号恢复普通文字
 function removeHighlightFromSelection(){
-  var text = window._getPendingHighlightText();
+  var pending = window._getPendingHighlight();
+  var text = pending.text;
   if(!text) return;
   var ta = document.getElementById('noteContent');
   var content = ta.value;
 
-  var hit = findMarkedOccurrence(content, text);
-  if(!hit){
+  var occs = findAllOccurrences(content, text);
+  var target = occs[pending.occIndex];
+  if(!target || !target.marked){
     toast('未找到该文字的标记，可能已被取消');
     window._hideHighlightFloatBtn();
     return;
   }
 
-  var idx = hit.idx, sym = hit.sym, symLen = sym.length;
+  var idx = target.idx, sym = target.sym, symLen = sym.length;
   // 去掉前后符号：[before][sym][text][sym][after] → [before][text][after]
   ta.value = content.slice(0, idx - symLen) + text + content.slice(idx + text.length + symLen);
   updatePreview();
