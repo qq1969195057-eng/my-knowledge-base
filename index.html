@@ -715,10 +715,17 @@ img{max-width:100%;border-radius:6px;margin:6px 0;display:block}
 
 // ── Markdown 渲染 ──────────────────────────────────────
 function mdToHtml(md){
+  // 记录占位符插入顺序及其跨越的原始行数：[{token: 'CODEBLOCK0END', lines: 3}, ...]
+  // 用于后续从"替换后文本的行号"精确反推"原始md文本的行号"
+  var placeholderSpans = [];
+
   let codeBlocks = [];
   md = md.replace(/```([\s\S]*?)```/g, function(m, c) {
+    var idx = codeBlocks.length;
     codeBlocks.push(c.trim());
-    return 'CODEBLOCK' + (codeBlocks.length-1) + 'END';
+    var token = 'CODEBLOCK' + idx + 'END';
+    placeholderSpans.push({token: token, lines: m.split('\n').length});
+    return token;
   });
 
   let inlineCodes = [];
@@ -729,8 +736,11 @@ function mdToHtml(md){
 
   let mathBlocks = [], mathInlines = [];
   md = md.replace(/\$\$([\s\S]+?)\$\$/g, function(m, f) {
+    var idx = mathBlocks.length;
     mathBlocks.push(f);
-    return 'MATHBLOCK' + (mathBlocks.length-1) + 'END';
+    var token = 'MATHBLOCK' + idx + 'END';
+    placeholderSpans.push({token: token, lines: m.split('\n').length});
+    return token;
   });
   md = md.replace(/\$([^\$\n]+?)\$/g, function(m, f) {
     mathInlines.push(f);
@@ -745,7 +755,7 @@ function mdToHtml(md){
       var m = line.match(/^([A-Z])[.、]\s*(.+)$/);
       return m ? {letter: m[1], text: m[2]} : null;
     }).filter(Boolean);
-    var qid = 'quiz' + quizBlocks.length;
+    var idx = quizBlocks.length;
     var html = '<div class="quiz-block" data-answer="' + answer + '">';
     opts.forEach(function(o){
       html += '<div class="quiz-option" data-letter="' + o.letter + '" onclick="checkQuizAnswer(this)">'
@@ -755,7 +765,9 @@ function mdToHtml(md){
     });
     html += '</div>';
     quizBlocks.push(html);
-    return 'QUIZBLOCK' + (quizBlocks.length-1) + 'END\n';
+    var token = 'QUIZBLOCK' + idx + 'END';
+    placeholderSpans.push({token: token, lines: match.split('\n').length});
+    return token + '\n';
   });
 
   let tableBlocks = [];
@@ -779,8 +791,11 @@ function mdToHtml(md){
     }
     if (headerDone) result += '</tbody>';
     result += '</table>';
+    var idx = tableBlocks.length;
     tableBlocks.push(result);
-    return 'TABLEBLOCK' + (tableBlocks.length-1) + 'END\n';
+    var token = 'TABLEBLOCK' + idx + 'END';
+    placeholderSpans.push({token: token, lines: match.split('\n').length - 1}); // match末尾自带\n，少算一行
+    return token + '\n';
   });
 
   let h = md
@@ -791,20 +806,35 @@ function mdToHtml(md){
   h = h.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:8px;margin:8px 0;display:block">');
   h = h.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color:#4338ca">$1</a>');
 
+  // 用 placeholderSpans 建立 token -> 跨越行数 的映射，便于查表
+  var spanByToken = {};
+  placeholderSpans.forEach(function(s){ spanByToken[s.token] = s.lines; });
+
   var lines = h.split('\n');
   var out = [];
+  var origLineCursor = 0; // 当前指向"原始md文本"的真实行号（0-based）
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i];
-    if (/^#### /.test(line)) { out.push('<h4 style="font-size:13px;font-weight:600;margin:12px 0 4px;color:#555">' + line.slice(5) + '</h4>'); continue; }
-    if (/^### /.test(line)) { out.push('<h3>' + line.slice(4) + '</h3>'); continue; }
-    if (/^## /.test(line)) { out.push('<h2>' + line.slice(3) + '</h2>'); continue; }
-    if (/^# /.test(line)) { out.push('<h1>' + line.slice(2) + '</h1>'); continue; }
+    var trimmed = line.trim();
+    // 占位符整行：跳过对应的原始行数，不参与精确定位
+    if (spanByToken.hasOwnProperty(trimmed)){
+      origLineCursor += spanByToken[trimmed];
+      out.push(line.replace(trimmed, trimmed)); // 占位符本身原样保留，稍后统一还原
+      continue;
+    }
+    var curLine = origLineCursor; // 这一普通行对应的原始行号
+    origLineCursor++;
+    var lnAttr = ' data-line="' + curLine + '"';
+    if (/^#### /.test(line)) { out.push('<h4' + lnAttr + ' style="font-size:13px;font-weight:600;margin:12px 0 4px;color:#555">' + line.slice(5) + '</h4>'); continue; }
+    if (/^### /.test(line)) { out.push('<h3' + lnAttr + '>' + line.slice(4) + '</h3>'); continue; }
+    if (/^## /.test(line)) { out.push('<h2' + lnAttr + '>' + line.slice(3) + '</h2>'); continue; }
+    if (/^# /.test(line)) { out.push('<h1' + lnAttr + '>' + line.slice(2) + '</h1>'); continue; }
     if (/^---+$/.test(line.trim())) { out.push('<hr>'); continue; }
-    if (/^&gt; /.test(line)) { out.push('<blockquote>' + line.slice(5) + '</blockquote>'); continue; }
-    if (/^\d+\. /.test(line)) { out.push('<li>' + line.replace(/^\d+\. /,'') + '</li>'); continue; }
-    if (/^[-*] /.test(line)) { out.push('<li>' + line.slice(2) + '</li>'); continue; }
+    if (/^&gt; /.test(line)) { out.push('<blockquote' + lnAttr + '>' + line.slice(5) + '</blockquote>'); continue; }
+    if (/^\d+\. /.test(line)) { out.push('<li' + lnAttr + '>' + line.replace(/^\d+\. /,'') + '</li>'); continue; }
+    if (/^[-*] /.test(line)) { out.push('<li' + lnAttr + '>' + line.slice(2) + '</li>'); continue; }
     if (line.trim() === '') { out.push('<br>'); continue; }
-    out.push('<p>' + line + '</p>');
+    out.push('<p' + lnAttr + '>' + line + '</p>');
   }
 
   h = out.join('\n');
@@ -950,88 +980,66 @@ function checkQuizAnswer(el){
 
 // ══════════════════════════════════════════════════════════
 // 新增：预览模式下选中文字 → 弹出颜色选择工具条 → 写回对应符号高亮
+// 定位原理：mdToHtml渲染时已给每个普通段落标签打上data-line（对应noteContent.value
+// 中的真实行号），选中文字后只需取该行号 + 选区在该元素纯文本中的字符偏移，
+// 即可在原始该行文本中精确定位，不受全文重复字符干扰。
 // ══════════════════════════════════════════════════════════
 var HL_SYMBOLS = {red:'==', orange:'^^', blue:'~~', green:'++'};
 var HL_SYM_LIST = ['==','^^','~~','++'];
-var HL_CTX_LEN = 12; // 上下文锚定长度：选区前后各取多少个字符用于唯一定位
 
-// 跳过紧邻的标记符号（如果某侧文本以==/^^/~~/++开头或结尾，去掉这2个字符再比较）
-function stripAdjacentSymbol(s, fromStart){
-  for(var i=0;i<HL_SYM_LIST.length;i++){
-    var sym = HL_SYM_LIST[i];
-    if(fromStart && s.slice(0,2)===sym) return s.slice(2);
-    if(!fromStart && s.slice(-2)===sym) return s.slice(0,-2);
-  }
-  return s;
-}
-
-// 在 content 中，用"前文+选中文字+后文"的组合精确查找唯一位置
-// ctxBefore/ctxAfter 是选区在预览区中前后各HL_CTX_LEN个字符的纯文本（可能为空，代表到了文章边界）
-// 返回 {idx, marked, sym} 或 null
-function locateByContext(content, text, ctxBefore, ctxAfter){
-  var searchFrom = 0;
-  var candidates = [];
-  while(true){
-    var found = content.indexOf(text, searchFrom);
-    if(found === -1) break;
-    candidates.push(found);
-    searchFrom = found + text.length;
-  }
-  if(candidates.length === 0) return null;
-  if(candidates.length === 1){
-    return buildOccInfo(content, text, candidates[0]);
-  }
-  // 多个候选位置时，用上下文做精确匹配：比较前后若干字符（跳过可能存在的标记符号本身）
-  var bestIdx = -1, bestScore = -1;
-  for(var i=0;i<candidates.length;i++){
-    var idx = candidates[i];
-    var before = content.slice(Math.max(0, idx-HL_CTX_LEN-2), idx);
-    var after = content.slice(idx+text.length, idx+text.length+HL_CTX_LEN+2);
-    before = stripAdjacentSymbol(before, false);
-    after = stripAdjacentSymbol(after, true);
-    // 计算与目标上下文的匹配得分：末尾/开头重合的字符数
-    var score = 0;
-    var bLen = Math.min(before.length, ctxBefore.length);
-    for(var k=1;k<=bLen;k++){
-      if(before.slice(-k) === ctxBefore.slice(-k)) score = k; else break;
+// 找到el或其祖先中第一个带data-line属性的元素，返回行号(number)或null
+function findLineElement(el, previewPane){
+  while(el && el !== previewPane){
+    if(el.nodeType === 1 && el.hasAttribute && el.hasAttribute('data-line')){
+      return el;
     }
-    var aLen = Math.min(after.length, ctxAfter.length);
-    for(var k=1;k<=aLen;k++){
-      if(after.slice(0,k) === ctxAfter.slice(0,k)) score += k; else break;
-    }
-    if(score > bestScore){ bestScore = score; bestIdx = idx; }
+    el = el.parentNode;
   }
-  return buildOccInfo(content, text, bestIdx);
+  return null;
 }
 
-function buildOccInfo(content, text, idx){
-  var before2 = content.slice(Math.max(0,idx-2), idx);
-  var after2 = content.slice(idx+text.length, idx+text.length+2);
-  var marked = HL_SYM_LIST.indexOf(before2) !== -1 && before2 === after2;
-  return {idx: idx, marked: marked, sym: marked ? before2 : null};
+// 在"渲染后的该行纯文本"中，选区位置对应的字符偏移，反向映射到"原始该行文本"的字符偏移。
+// 由于该行内可能存在 **粗体** *斜体* ==高亮== 等语法符号在原文中存在但渲染后被去掉/转换，
+// 这里采用逐字符对齐策略：原文该行去除所有标记符号后应与渲染纯文本基本一致（常见场景下完全一致）。
+// 简化策略：如果原文行去除符号后的纯文本与渲染纯文本相同，直接按偏移量映射；否则退化为整行查找。
+function mapOffsetToSourceLine(renderedLineText, sourceLineText, offsetInRendered){
+  // 快速路径：两者完全相同（绝大多数普通文字行，无特殊符号）
+  if(renderedLineText === sourceLineText){
+    return offsetInRendered;
+  }
+  // 否则尝试去除常见标记符号后比较，找出对应关系
+  // 构建"原文字符位置 -> 是否为符号字符"的标记，跳过符号字符后对齐渲染文本
+  var symbols = ['**','==','^^','~~','++'];
+  var srcPos = 0, renderedPos = 0;
+  var mapping = []; // mapping[renderedPos] = srcPos
+  while(srcPos < sourceLineText.length){
+    var matchedSym = null;
+    for(var i=0;i<symbols.length;i++){
+      if(sourceLineText.slice(srcPos, srcPos+symbols[i].length) === symbols[i]){ matchedSym = symbols[i]; break; }
+    }
+    if(matchedSym){ srcPos += matchedSym.length; continue; } // 符号字符不出现在渲染文本里，跳过
+    if(sourceLineText[srcPos] === '*' && sourceLineText[srcPos+1] !== '*'){ srcPos += 1; continue; } // 单个*斜体符号
+    mapping[renderedPos] = srcPos;
+    renderedPos++; srcPos++;
+  }
+  mapping[renderedPos] = srcPos; // 末尾位置
+  if(mapping[offsetInRendered] !== undefined) return mapping[offsetInRendered];
+  return null; // 映射失败
 }
 
-// 提取选区前后HL_CTX_LEN个字符的纯文本上下文（用于唯一定位）
-function extractContext(previewPane, range){
-  var beforeRange = document.createRange();
-  beforeRange.selectNodeContents(previewPane);
-  beforeRange.setEnd(range.startContainer, range.startOffset);
-  var fullBefore = beforeRange.toString();
-  var ctxBefore = fullBefore.slice(-HL_CTX_LEN);
-
-  var afterRange = document.createRange();
-  afterRange.selectNodeContents(previewPane);
-  afterRange.setStart(range.endContainer, range.endOffset);
-  var fullAfter = afterRange.toString();
-  var ctxAfter = fullAfter.slice(0, HL_CTX_LEN);
-
-  return {ctxBefore: ctxBefore, ctxAfter: ctxAfter};
+// 检测某行原文在 selStart..selEnd 区间是否已被标记，返回 {marked, sym, symStart, symEnd} 或 null
+function checkLineMarked(sourceLineText, selStart, selEnd){
+  var before2 = sourceLineText.slice(Math.max(0,selStart-2), selStart);
+  var after2 = sourceLineText.slice(selEnd, selEnd+2);
+  if(HL_SYM_LIST.indexOf(before2) !== -1 && before2 === after2){
+    return {marked: true, sym: before2};
+  }
+  return {marked: false, sym: null};
 }
 
 (function(){
-  var pendingText = ''; // 当前选中的纯文本
-  var pendingCtx = {ctxBefore:'', ctxAfter:''}; // 选区前后的上下文，用于精确定位
-  var lockClicking = false; // 按钮点击期间锁定，防止中途被其他事件清空
+  var pending = null; // {lineNo, selStart, selEnd, text}
+  var lockClicking = false;
   var previewPane = document.getElementById('previewPane');
   var floatBtn = document.getElementById('hlFloatBtn');
   var removeBtn = document.getElementById('hlRemoveBtn');
@@ -1043,13 +1051,12 @@ function extractContext(previewPane, range){
     removeBtn.classList.toggle('show-remove', !!hasMarked);
   }
   function hideFloatBtn(){
-    if(lockClicking) return; // 正在处理按钮点击时，不允许被其他事件打断清空
+    if(lockClicking) return;
     floatBtn.classList.remove('show');
-    pendingText = '';
+    pending = null;
   }
 
   document.addEventListener('mouseup', function(e){
-    // 点的是工具条本身（含内部任意子节点），不在这里处理选区逻辑
     if(floatBtn.contains(e.target)) return;
     var sel = window.getSelection();
     var text = sel ? sel.toString() : '';
@@ -1063,27 +1070,58 @@ function extractContext(previewPane, range){
       hideFloatBtn();
       return;
     }
-    pendingText = text;
-    pendingCtx = extractContext(previewPane, range);
-    // 检测这一次具体出现是否已经被标记过（用于决定是否显示"取消标记"按钮）
-    var content = document.getElementById('noteContent').value;
-    var hit = locateByContext(content, text, pendingCtx.ctxBefore, pendingCtx.ctxAfter);
+    // 找到选区所在的data-line元素
+    var startEl = range.startContainer.nodeType === 1 ? range.startContainer : range.startContainer.parentNode;
+    var lineEl = findLineElement(startEl, previewPane);
+    if(!lineEl){
+      hideFloatBtn();
+      toast('该内容暂不支持标记（可能在表格/代码块/公式中）');
+      return;
+    }
+    var lineNo = parseInt(lineEl.getAttribute('data-line'), 10);
+
+    // 计算选区在该元素纯文本中的字符偏移
+    var elRange = document.createRange();
+    elRange.selectNodeContents(lineEl);
+    elRange.setEnd(range.startContainer, range.startOffset);
+    var offsetInRendered = elRange.toString().length;
+    var renderedLineText = lineEl.textContent;
+
+    // 取出原始该行文本
+    var noteContent = document.getElementById('noteContent').value;
+    var srcLines = noteContent.split('\n');
+    if(lineNo < 0 || lineNo >= srcLines.length){
+      hideFloatBtn();
+      return;
+    }
+    var sourceLineText = srcLines[lineNo];
+
+    var srcOffset = mapOffsetToSourceLine(renderedLineText, sourceLineText, offsetInRendered);
+    if(srcOffset === null){
+      hideFloatBtn();
+      toast('暂不支持标记这段内容');
+      return;
+    }
+    var selStart = srcOffset;
+    var selEnd = srcOffset + text.length;
+
+    pending = {lineNo: lineNo, selStart: selStart, selEnd: selEnd, text: text};
+
+    var markInfo = checkLineMarked(sourceLineText, selStart, selEnd);
     var rect = range.getBoundingClientRect();
-    showFloatBtn(rect, !!(hit && hit.marked));
+    showFloatBtn(rect, markInfo.marked);
   });
 
-  // 点击空白处（非工具条、非选区）时隐藏
   document.addEventListener('mousedown', function(e){
     if(floatBtn.contains(e.target)) return;
     if(!previewPane.contains(e.target)) hideFloatBtn();
   });
 
-  // 工具条按下的瞬间立即锁定当前 pendingText，防止后续 mouseup/mousedown 把它清空
   floatBtn.addEventListener('mousedown', function(){ lockClicking = true; });
 
   window._getPendingHighlight = function(){
     lockClicking = false;
-    return {text: pendingText, ctxBefore: pendingCtx.ctxBefore, ctxAfter: pendingCtx.ctxAfter};
+    return pending;
   };
   window._hideHighlightFloatBtn = function(){
     lockClicking = false;
@@ -1091,52 +1129,52 @@ function extractContext(previewPane, range){
   };
 })();
 
-// ── 将选中文字（基于上下文精确定位）在源 Markdown 中包上对应颜色符号
+// ── 将选中文字（精确到行号+字符偏移）在源 Markdown 中包上对应颜色符号
 function applyHighlightFromSelection(color){
   var pending = window._getPendingHighlight();
-  var text = pending.text;
-  if(!text) return;
+  if(!pending) return;
   var sym = HL_SYMBOLS[color] || '==';
   var ta = document.getElementById('noteContent');
-  var content = ta.value;
+  var srcLines = ta.value.split('\n');
+  if(pending.lineNo < 0 || pending.lineNo >= srcLines.length) return;
 
-  var hit = locateByContext(content, text, pending.ctxBefore, pending.ctxAfter);
-  if(!hit){
-    toast('未在笔记原文中找到该文字，可能跨越了多个段落');
-    window._hideHighlightFloatBtn();
-    return;
-  }
-  if(hit.marked){
+  var lineText = srcLines[pending.lineNo];
+  var markInfo = checkLineMarked(lineText, pending.selStart, pending.selEnd);
+  if(markInfo.marked){
     toast('这段文字已经被标记过了');
     window._hideHighlightFloatBtn();
     return;
   }
 
-  var idx = hit.idx;
-  ta.value = content.slice(0, idx) + sym + text + sym + content.slice(idx + text.length);
+  var newLine = lineText.slice(0, pending.selStart) + sym + pending.text + sym + lineText.slice(pending.selEnd);
+  srcLines[pending.lineNo] = newLine;
+  ta.value = srcLines.join('\n');
   updatePreview();
   window._hideHighlightFloatBtn();
   toast('已标记，记得点击保存');
 }
 
-// ── 取消选中文字（基于上下文精确定位）的高亮标记，去掉符号恢复普通文字
+// ── 取消选中文字（精确到行号+字符偏移）的高亮标记，去掉符号恢复普通文字
 function removeHighlightFromSelection(){
   var pending = window._getPendingHighlight();
-  var text = pending.text;
-  if(!text) return;
+  if(!pending) return;
   var ta = document.getElementById('noteContent');
-  var content = ta.value;
+  var srcLines = ta.value.split('\n');
+  if(pending.lineNo < 0 || pending.lineNo >= srcLines.length) return;
 
-  var hit = locateByContext(content, text, pending.ctxBefore, pending.ctxAfter);
-  if(!hit || !hit.marked){
+  var lineText = srcLines[pending.lineNo];
+  var markInfo = checkLineMarked(lineText, pending.selStart, pending.selEnd);
+  if(!markInfo.marked){
     toast('未找到该文字的标记，可能已被取消');
     window._hideHighlightFloatBtn();
     return;
   }
 
-  var idx = hit.idx, sym = hit.sym, symLen = sym.length;
+  var symLen = markInfo.sym.length;
   // 去掉前后符号：[before][sym][text][sym][after] → [before][text][after]
-  ta.value = content.slice(0, idx - symLen) + text + content.slice(idx + text.length + symLen);
+  var newLine = lineText.slice(0, pending.selStart - symLen) + pending.text + lineText.slice(pending.selEnd + symLen);
+  srcLines[pending.lineNo] = newLine;
+  ta.value = srcLines.join('\n');
   updatePreview();
   window._hideHighlightFloatBtn();
   toast('已取消标记，记得点击保存');
